@@ -1,3 +1,4 @@
+
 import { useDebate } from "@/context/DebateContext";
 import SpeakerCard from "./SpeakerCard";
 import TranscriptDisplay from "./TranscriptDisplay";
@@ -6,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Bug, Trash2, Settings } from "lucide-react";
+import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh } from "lucide-react";
 import { useEffect, useState } from "react";
-import { startSpeechRecognition } from "@/services/speechService";
+import { startSpeechRecognition, EmotionType } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
@@ -32,6 +33,8 @@ const DebateRoom = () => {
   
   const [isEditingSpeakers, setIsEditingSpeakers] = useState(false);
   const [speakerNames, setSpeakerNames] = useState(speakers.map(s => s.name));
+  const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('neutral');
+  const [emotionDetectionEnabled, setEmotionDetectionEnabled] = useState(false);
 
   // Handle microphone toggle
   const toggleMicrophone = () => {
@@ -51,22 +54,47 @@ const DebateRoom = () => {
   useEffect(() => {
     if (!activeListener) return;
     
-    // Start speech recognition
-    const stopRecognition = startSpeechRecognition(currentSpeakerId, (text, isClaim) => {
-      // Add to transcript
-      addTranscriptEntry({
-        text,
-        speakerId: currentSpeakerId,
-        timestamp: new Date(),
-        isClaim
-      });
-    });
+    // Start speech recognition with emotion detection if enabled
+    const stopRecognition = startSpeechRecognition(
+      currentSpeakerId, 
+      (text, isClaim) => {
+        // Add to transcript
+        addTranscriptEntry({
+          text,
+          speakerId: currentSpeakerId,
+          timestamp: new Date(),
+          isClaim,
+          emotion: emotionDetectionEnabled ? currentEmotion : undefined
+        });
+      },
+      emotionDetectionEnabled ? setCurrentEmotion : undefined
+    );
     
     // Cleanup on unmount or when listener is deactivated
     return () => {
       stopRecognition();
     };
-  }, [activeListener, currentSpeakerId, addTranscriptEntry]);
+  }, [activeListener, currentSpeakerId, addTranscriptEntry, emotionDetectionEnabled, currentEmotion]);
+  
+  // Get emotion icon based on detected emotion
+  const getEmotionIcon = (emotion: EmotionType) => {
+    switch (emotion) {
+      case 'angry':
+        return <Angry className="text-red-500" />;
+      case 'happy':
+        return <Smile className="text-green-500" />;
+      case 'sad':
+        return <Frown className="text-blue-500" />;
+      case 'excited':
+        return <Smile className="text-yellow-500" />;
+      case 'frustrated':
+        return <Angry className="text-orange-500" />;
+      case 'uncertain':
+        return <Meh className="text-purple-500" />;
+      default:
+        return <Meh className="text-gray-500" />;
+    }
+  };
   
   // Process new claims for fact checking
   useEffect(() => {
@@ -152,6 +180,17 @@ const DebateRoom = () => {
                   Debug Mode
                 </Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="emotion-detection" 
+                  checked={emotionDetectionEnabled}
+                  onCheckedChange={setEmotionDetectionEnabled}
+                />
+                <Label htmlFor="emotion-detection" className="flex items-center gap-1">
+                  {getEmotionIcon(currentEmotion)}
+                  Emotion Detection
+                </Label>
+              </div>
               <Button
                 onClick={() => clearTranscript()}
                 variant="outline"
@@ -230,8 +269,20 @@ const DebateRoom = () => {
                       speaker={speaker}
                       isActive={activeListener && currentSpeakerId === speaker.id}
                       onClick={() => setCurrentSpeakerId(speaker.id)}
+                      emotion={currentSpeakerId === speaker.id && emotionDetectionEnabled ? currentEmotion : undefined}
                     />
                   ))}
+                </div>
+              )}
+              
+              {/* Emotion display */}
+              {emotionDetectionEnabled && activeListener && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <h4 className="text-sm font-medium mb-2">Current Speaker Emotion</h4>
+                  <div className="flex items-center gap-2">
+                    {getEmotionIcon(currentEmotion)}
+                    <span className="capitalize">{currentEmotion}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -260,6 +311,7 @@ const DebateRoom = () => {
         <ul className="text-sm list-disc pl-5 space-y-1">
           <li>Make statements containing phrases like "studies show", "everyone knows", etc.</li>
           <li>The system will identify these as claims and check them against the database</li>
+          <li>Enable emotion detection to analyze speaker's tone of voice</li>
           <li>False claims will trigger an alert sound</li>
           <li>Accuracy scores are calculated for each speaker</li>
           <li>Click on a speaker to set them as the current speaker</li>

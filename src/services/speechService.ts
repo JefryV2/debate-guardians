@@ -1,10 +1,13 @@
-
 import { TranscriptEntry } from "@/context/DebateContext";
+
+// Emotion types for voice analysis
+export type EmotionType = 'neutral' | 'angry' | 'happy' | 'sad' | 'frustrated' | 'excited' | 'uncertain';
 
 // Use the Web Speech API for real speech recognition
 export const startSpeechRecognition = (
   speakerId: string,
-  onTranscript: (text: string, isClaim: boolean) => void
+  onTranscript: (text: string, isClaim: boolean) => void,
+  onEmotionDetected?: (emotion: EmotionType) => void
 ) => {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     console.error("Speech recognition is not supported in this browser.");
@@ -23,8 +26,19 @@ export const startSpeechRecognition = (
   let finalTranscript = '';
   let interimTranscript = '';
   
+  // For emotion analysis
+  let audioContext: AudioContext | null = null;
+  let analyzer: AnalyserNode | null = null;
+  let microphone: MediaStreamAudioSourceNode | null = null;
+  let emotionAnalysisInterval: number | null = null;
+  
   recognition.onstart = () => {
     console.log("Speech recognition started");
+    
+    // Setup audio analysis for emotion detection if callback is provided
+    if (onEmotionDetected) {
+      setupEmotionDetection(onEmotionDetected);
+    }
   };
   
   recognition.onresult = (event: any) => {
@@ -49,6 +63,51 @@ export const startSpeechRecognition = (
   
   recognition.onend = () => {
     console.log("Speech recognition ended");
+    
+    // Clean up emotion detection
+    if (emotionAnalysisInterval) {
+      window.clearInterval(emotionAnalysisInterval);
+      emotionAnalysisInterval = null;
+    }
+    
+    if (microphone) {
+      microphone.disconnect();
+      microphone = null;
+    }
+    
+    if (audioContext) {
+      audioContext.close().catch(console.error);
+      audioContext = null;
+    }
+  };
+  
+  // Setup emotion detection through audio analysis
+  const setupEmotionDetection = async (onEmotionDetected: (emotion: EmotionType) => void) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      audioContext = new AudioContext();
+      analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 2048;
+      
+      microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyzer);
+      
+      // Analyze audio data periodically to detect emotion
+      emotionAnalysisInterval = window.setInterval(() => {
+        if (analyzer) {
+          const bufferLength = analyzer.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyzer.getByteFrequencyData(dataArray);
+          
+          const emotion = analyzeVoiceEmotion(dataArray);
+          onEmotionDetected(emotion);
+        }
+      }, 500); // Check every 500ms
+      
+    } catch (error) {
+      console.error("Error setting up emotion detection:", error);
+    }
   };
   
   // Start recognition
@@ -62,6 +121,19 @@ export const startSpeechRecognition = (
   return () => {
     try {
       recognition.stop();
+      
+      // Clean up emotion detection
+      if (emotionAnalysisInterval) {
+        window.clearInterval(emotionAnalysisInterval);
+      }
+      
+      if (microphone) {
+        microphone.disconnect();
+      }
+      
+      if (audioContext) {
+        audioContext.close().catch(console.error);
+      }
     } catch (e) {
       console.error("Error stopping speech recognition:", e);
     }
@@ -209,4 +281,42 @@ export const detectClaim = (text: string): boolean => {
   
   // Not detected as a claim
   return false;
+};
+
+// Analyze audio data to detect emotion
+// This is a simplified approach - in production, you would use a trained ML model
+const analyzeVoiceEmotion = (audioData: Uint8Array): EmotionType => {
+  // Calculate audio features
+  const average = audioData.reduce((sum, value) => sum + value, 0) / audioData.length;
+  const max = Math.max(...Array.from(audioData));
+  const variability = calculateVariability(audioData);
+  
+  // Simple rule-based emotion detection
+  // In a real implementation, this would use a proper ML model
+  if (max > 220 && variability > 50) {
+    return 'angry'; // High volume and high variability often indicates anger
+  } else if (max > 200 && variability > 40) {
+    return 'excited'; // High volume but less variability might be excitement
+  } else if (max > 180 && variability < 30) {
+    return 'happy'; // Moderate volume, low variability might indicate happiness
+  } else if (max < 130 && variability < 20) {
+    return 'sad'; // Low volume, low variability often indicates sadness
+  } else if (variability > 40 && average < 150) {
+    return 'frustrated'; // High variability but moderate volume might be frustration
+  } else if (variability > 30 && average < 120) {
+    return 'uncertain'; // Some variability but lower volume might be uncertainty
+  }
+  
+  return 'neutral'; // Default
+};
+
+// Calculate variability in the audio data
+const calculateVariability = (audioData: Uint8Array): number => {
+  const values = Array.from(audioData);
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  
+  const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+  const variance = squaredDiffs.reduce((sum, value) => sum + value, 0) / squaredDiffs.length;
+  
+  return Math.sqrt(variance); // Standard deviation
 };
