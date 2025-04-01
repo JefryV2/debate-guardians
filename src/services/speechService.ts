@@ -1,57 +1,89 @@
 
 import { TranscriptEntry } from "@/context/DebateContext";
 
-// Mock function to simulate transcription - would be replaced with Whisper API
+// Use the Web Speech API for real speech recognition
 export const startSpeechRecognition = (
   speakerId: string,
   onTranscript: (text: string, isClaim: boolean) => void
 ) => {
-  // In a real implementation, we would connect to WebSocket or use the Web Speech API
-  // For MVP, we'll simulate transcription
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.error("Speech recognition is not supported in this browser.");
+    return () => {};
+  }
+
+  // Initialize speech recognition
+  // @ts-ignore - TypeScript doesn't have built-in types for webkitSpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
   
-  let active = true;
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
   
-  const simulateTranscription = () => {
-    if (!active) return;
-    
-    // Randomly decide if this is a real transcription or just background noise
-    const isRealTranscription = Math.random() > 0.3;
-    
-    if (isRealTranscription) {
-      // Select a random statement, sometimes with claims
-      const statements = [
-        { text: "I believe we should focus on economic growth.", isClaim: false },
-        { text: "Studies show that vaccines cause autism.", isClaim: true },
-        { text: "Climate change is not caused by human activity.", isClaim: true },
-        { text: "We need to consider multiple perspectives.", isClaim: false },
-        { text: "The Earth is flat, that's a scientific fact.", isClaim: true },
-        { text: "COVID-19 is just a common cold.", isClaim: true },
-        { text: "I think we need more research on this topic.", isClaim: false },
-        { text: "Everyone knows that 5G towers spread viruses.", isClaim: true },
-        { text: "Let me respond to your point about taxes.", isClaim: false }
-      ];
-      
-      const randomStatement = statements[Math.floor(Math.random() * statements.length)];
-      onTranscript(randomStatement.text, randomStatement.isClaim);
-    }
-    
-    // Schedule next transcription after a random delay
-    const delay = 3000 + Math.random() * 5000;
-    setTimeout(simulateTranscription, delay);
+  let finalTranscript = '';
+  let interimTranscript = '';
+  
+  recognition.onstart = () => {
+    console.log("Speech recognition started");
   };
   
-  // Start the simulation
-  simulateTranscription();
+  recognition.onresult = (event: any) => {
+    interimTranscript = '';
+    
+    // Collect the interim transcript
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript = event.results[i][0].transcript;
+        // Process the final transcript
+        processFinalTranscript(finalTranscript, speakerId, onTranscript);
+        finalTranscript = ''; // Reset for next statement
+      } else {
+        interimTranscript += event.results[i][0].transcript;
+      }
+    }
+  };
   
+  recognition.onerror = (event: any) => {
+    console.error("Speech recognition error", event.error);
+  };
+  
+  recognition.onend = () => {
+    console.log("Speech recognition ended");
+  };
+  
+  // Start recognition
+  try {
+    recognition.start();
+  } catch (e) {
+    console.error("Error starting speech recognition:", e);
+  }
+  
+  // Return cleanup function
   return () => {
-    // Cleanup function
-    active = false;
+    try {
+      recognition.stop();
+    } catch (e) {
+      console.error("Error stopping speech recognition:", e);
+    }
   };
 };
 
-// In a real app, we would detect claims using NLP/AI
+// Process a complete statement and detect if it's a claim
+const processFinalTranscript = (
+  text: string,
+  speakerId: string,
+  onTranscript: (text: string, isClaim: boolean) => void
+) => {
+  // Only process non-empty statements
+  if (text.trim()) {
+    const isClaim = detectClaim(text);
+    onTranscript(text, isClaim);
+  }
+};
+
+// In a real app, we would use NLP/AI for better claim detection
+// For now, we'll use a simple keyword-based approach
 export const detectClaim = (text: string): boolean => {
-  // Simple implementation: check for claim indicators
   const claimIndicators = [
     "studies show",
     "research indicates",
@@ -62,10 +94,21 @@ export const detectClaim = (text: string): boolean => {
     "fact",
     "truth is",
     "clearly",
-    "obviously"
+    "obviously",
+    "according to",
+    "statistics show",
+    "data indicates",
+    "experts agree",
+    "it is known",
+    "undeniable",
+    "definitely",
+    "certainly",
+    "always",
+    "never"
   ];
   
+  const lowerText = text.toLowerCase();
   return claimIndicators.some(indicator => 
-    text.toLowerCase().includes(indicator.toLowerCase())
+    lowerText.includes(indicator.toLowerCase())
   );
 };

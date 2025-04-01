@@ -6,20 +6,23 @@ import FactCheckResults from "./FactCheckResult";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Mic, MicOff, Bug } from "lucide-react";
-import { useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Mic, MicOff, Bug, Trash2, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
 import { startSpeechRecognition } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 const DebateRoom = () => {
   const { 
     speakers, 
+    setSpeakers,
     activeListener, 
     setActiveListener,
     addTranscriptEntry,
+    clearTranscript,
     currentSpeakerId,
     setCurrentSpeakerId,
     claims,
@@ -28,6 +31,9 @@ const DebateRoom = () => {
     setDebugMode
   } = useDebate();
   
+  const [isEditingSpeakers, setIsEditingSpeakers] = useState(false);
+  const [speakerNames, setSpeakerNames] = useState(speakers.map(s => s.name));
+
   // Handle microphone toggle
   const toggleMicrophone = () => {
     if (!activeListener) {
@@ -87,6 +93,23 @@ const DebateRoom = () => {
     }, 1500);
   }, [claims, addFactCheck]);
   
+  // Handle speaker name changes
+  const handleSpeakerNameChange = (index: number, name: string) => {
+    const newNames = [...speakerNames];
+    newNames[index] = name;
+    setSpeakerNames(newNames);
+  };
+
+  // Save speaker changes
+  const saveSpeakerChanges = () => {
+    setSpeakers(speakers.map((speaker, i) => ({
+      ...speaker,
+      name: speakerNames[i],
+      avatar: `https://api.dicebear.com/7.x/personas/svg?seed=${speakerNames[i]}`
+    })));
+    setIsEditingSpeakers(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="mb-6">
@@ -109,9 +132,27 @@ const DebateRoom = () => {
                 </Label>
               </div>
               <Button
+                onClick={() => clearTranscript()}
+                variant="outline"
+                size="icon"
+                title="Clear transcript"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={() => setIsEditingSpeakers(!isEditingSpeakers)}
+                variant="outline"
+                size="icon"
+                title="Edit speakers"
+                className={cn(isEditingSpeakers && "bg-muted")}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button
                 onClick={toggleMicrophone}
                 variant={activeListener ? "destructive" : "default"}
                 className="flex items-center gap-2"
+                disabled={isEditingSpeakers}
               >
                 {activeListener ? (
                   <>
@@ -134,16 +175,44 @@ const DebateRoom = () => {
             {/* Speaker sections */}
             <div className="md:col-span-1">
               <h3 className="text-lg font-medium mb-3">Speakers</h3>
-              <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
-                {speakers.map((speaker) => (
-                  <SpeakerCard 
-                    key={speaker.id} 
-                    speaker={speaker}
-                    isActive={activeListener && currentSpeakerId === speaker.id}
-                    onClick={() => setCurrentSpeakerId(speaker.id)}
-                  />
-                ))}
-              </div>
+              {isEditingSpeakers ? (
+                <div className="space-y-4">
+                  {speakers.map((speaker, i) => (
+                    <div key={speaker.id} className="space-y-2">
+                      <label htmlFor={`speaker-${i}`} className="text-sm font-medium">
+                        Speaker {i + 1} Name:
+                      </label>
+                      <Input
+                        id={`speaker-${i}`}
+                        value={speakerNames[i]}
+                        onChange={(e) => handleSpeakerNameChange(i, e.target.value)}
+                        placeholder={`Speaker ${i + 1}`}
+                      />
+                    </div>
+                  ))}
+                  <div className="flex justify-end pt-2">
+                    <Button 
+                      onClick={() => setIsEditingSpeakers(false)} 
+                      variant="ghost" 
+                      className="mr-2"
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={saveSpeakerChanges}>Save</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
+                  {speakers.map((speaker) => (
+                    <SpeakerCard 
+                      key={speaker.id} 
+                      speaker={speaker}
+                      isActive={activeListener && currentSpeakerId === speaker.id}
+                      onClick={() => setCurrentSpeakerId(speaker.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Main content area */}
@@ -157,21 +226,22 @@ const DebateRoom = () => {
         </CardContent>
         
         <CardFooter className="flex justify-between text-sm text-muted-foreground pt-2 pb-4 border-t">
-          <p>Debate Guardians MVP v1.0</p>
-          <p>Powered by Whisper & Fact-Check API</p>
+          <p>Debate Guardians v1.0</p>
+          <p>Using Web Speech API & Fact-Check Database</p>
         </CardFooter>
       </Card>
       
       <Card className="p-4 bg-blue-50 border border-blue-200">
-        <h3 className="font-medium mb-2">About this demo</h3>
+        <h3 className="font-medium mb-2">Using the app</h3>
         <p className="text-sm mb-3">
-          This MVP demonstrates real-time debate fact-checking. In a full version:
+          1. Click "Start Listening" and begin speaking
         </p>
         <ul className="text-sm list-disc pl-5 space-y-1">
-          <li>OpenAI Whisper would provide accurate speech-to-text</li>
-          <li>DistilBERT/GPT-4 would identify claims with higher accuracy</li>
-          <li>A comprehensive database and Google Fact Check API would verify claims</li>
-          <li>ElevenLabs would provide voice interruptions for corrections</li>
+          <li>Make statements containing phrases like "studies show", "everyone knows", etc.</li>
+          <li>The system will identify these as claims and check them against the database</li>
+          <li>False claims will trigger an alert sound</li>
+          <li>Accuracy scores are calculated for each speaker</li>
+          <li>Click on a speaker to set them as the current speaker</li>
         </ul>
       </Card>
     </div>

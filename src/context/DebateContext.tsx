@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "@/lib/toast";
 
@@ -36,10 +37,12 @@ export interface TranscriptEntry {
 
 interface DebateContextType {
   speakers: Speaker[];
+  setSpeakers: (speakers: Speaker[]) => void;
   activeListener: boolean;
   setActiveListener: (active: boolean) => void;
   transcript: TranscriptEntry[];
   addTranscriptEntry: (entry: Omit<TranscriptEntry, 'id'>) => void;
+  clearTranscript: () => void;
   claims: Claim[];
   factChecks: FactCheck[];
   addFactCheck: (factCheck: Omit<FactCheck, 'id'>) => void;
@@ -115,6 +118,22 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
     }
   };
 
+  const clearTranscript = () => {
+    setTranscript([]);
+    setClaims([]);
+    setFactChecks([]);
+    
+    // Reset speaker scores
+    setSpeakers(prev => prev.map(speaker => ({
+      ...speaker,
+      accuracyScore: 100,
+      totalClaims: 0,
+      verifiedClaims: 0
+    })));
+    
+    toast.info("Debate transcript cleared");
+  };
+
   const addFactCheck = (factCheck: Omit<FactCheck, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
     const newFactCheck = { ...factCheck, id };
@@ -146,9 +165,13 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
           duration: 5000,
         });
         
-        // In a real app: Play beep sound and interrupt with correction
-        const beep = new Audio('/beep.mp3');
-        beep.play().catch(e => console.log('Audio play failed:', e));
+        // Play beep sound and interrupt with correction
+        try {
+          const beep = new Audio('/beep.mp3');
+          beep.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+          console.log('Error playing beep sound:', e);
+        }
       }
     }
   };
@@ -157,10 +180,12 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
     <DebateContext.Provider
       value={{
         speakers,
+        setSpeakers,
         activeListener,
         setActiveListener,
         transcript,
         addTranscriptEntry,
+        clearTranscript,
         claims,
         factChecks,
         addFactCheck,
