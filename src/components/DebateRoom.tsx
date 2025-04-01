@@ -12,7 +12,7 @@ import { startSpeechRecognition } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/lib/toast";
 
 const DebateRoom = () => {
   const { 

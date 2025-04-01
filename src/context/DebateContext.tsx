@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/lib/toast";
 
 export interface Claim {
   id: string;
