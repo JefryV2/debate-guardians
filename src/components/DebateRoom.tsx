@@ -1,4 +1,3 @@
-
 import { useDebate } from "@/context/DebateContext";
 import SpeakerCard from "./SpeakerCard";
 import TranscriptDisplay from "./TranscriptDisplay";
@@ -86,12 +85,34 @@ const DebateRoom = () => {
       enumerable: false
     });
     
-    // Run fact check (with a small delay to simulate processing time)
-    setTimeout(() => {
-      const factCheckResult = checkFactAgainstDatabase(lastClaim);
-      addFactCheck(factCheckResult);
-    }, 1500);
-  }, [claims, addFactCheck]);
+    // Show processing indicator
+    if (debugMode) {
+      toast.info(`AI analyzing claim: ${lastClaim.text.substring(0, 50)}...`, {
+        description: "Checking facts against scientific evidence...",
+        duration: 2000,
+      });
+    }
+    
+    // Run AI fact check
+    const checkFact = async () => {
+      try {
+        // Call our async fact-check service
+        const factCheckResult = await checkFactAgainstDatabase(lastClaim);
+        addFactCheck(factCheckResult);
+      } catch (error) {
+        console.error("Error during fact check:", error);
+        // Handle error gracefully
+        addFactCheck({
+          claimId: lastClaim.id,
+          verdict: 'unverified',
+          source: "Error processing",
+          explanation: "An error occurred while fact-checking this claim."
+        });
+      }
+    };
+    
+    checkFact();
+  }, [claims, addFactCheck, debugMode]);
   
   // Handle speaker name changes
   const handleSpeakerNameChange = (index: number, name: string) => {

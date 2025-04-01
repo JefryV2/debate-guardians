@@ -81,34 +81,132 @@ const processFinalTranscript = (
   }
 };
 
-// In a real app, we would use NLP/AI for better claim detection
-// For now, we'll use a simple keyword-based approach
+// Enhanced claim detection using more sophisticated patterns
 export const detectClaim = (text: string): boolean => {
-  const claimIndicators = [
+  const lowerText = text.toLowerCase();
+  
+  // Categories of claim indicators with weighted importance
+  const strongClaimIndicators = [
     "studies show",
     "research indicates",
     "scientists say",
-    "evidence suggests",
+    "evidence suggests", 
     "proven that",
-    "everyone knows",
-    "fact",
-    "truth is",
-    "clearly",
-    "obviously",
     "according to",
     "statistics show",
     "data indicates",
     "experts agree",
+    "science tells us",
+    "research demonstrates",
+    "facts show",
+    "studies confirm"
+  ];
+  
+  const mediumClaimIndicators = [
+    "everyone knows",
+    "clearly",
+    "obviously",
     "it is known",
     "undeniable",
     "definitely",
     "certainly",
     "always",
-    "never"
+    "never",
+    "all people",
+    "nobody",
+    "most people",
+    "vast majority"
   ];
   
-  const lowerText = text.toLowerCase();
-  return claimIndicators.some(indicator => 
-    lowerText.includes(indicator.toLowerCase())
-  );
+  const topicalKeywords = [
+    "vaccines",
+    "climate change",
+    "global warming",
+    "evolution",
+    "flat earth",
+    "autism",
+    "covid",
+    "pandemic",
+    "diet",
+    "nutrition",
+    "cancer",
+    "cure",
+    "medicine",
+    "treatment",
+    "study",
+    "education",
+    "economy",
+    "inflation",
+    "government",
+    "political",
+    "immigration",
+    "crime",
+    "healthcare",
+    "gun control",
+    "election",
+    "transgender",
+    "gender",
+    "religion"
+  ];
+  
+  const statisticalPatterns = [
+    /\d+(\.\d+)?%/,  // Percentage patterns
+    /\d+ percent/,
+    /\d+ out of \d+/,
+    /increased by \d+/,
+    /decreased by \d+/,
+    /majority of/,
+    /minority of/,
+    /most of/
+  ];
+  
+  // Check for strong claim indicators
+  if (strongClaimIndicators.some(indicator => lowerText.includes(indicator))) {
+    return true;
+  }
+  
+  // Check for medium claim indicators combined with topical keywords
+  for (const indicator of mediumClaimIndicators) {
+    if (lowerText.includes(indicator)) {
+      // If we find a medium indicator and a topic keyword, it's likely a claim
+      if (topicalKeywords.some(keyword => lowerText.includes(keyword))) {
+        return true;
+      }
+    }
+  }
+  
+  // Check for statistical patterns which often indicate claims
+  if (statisticalPatterns.some(pattern => pattern.test(lowerText))) {
+    return true;
+  }
+  
+  // Check sentence structure patterns that often indicate claims
+  if (
+    lowerText.includes("is") || 
+    lowerText.includes("are") || 
+    lowerText.includes("causes") ||
+    lowerText.includes("leads to") ||
+    lowerText.includes("results in") ||
+    lowerText.startsWith("the fact is") ||
+    lowerText.startsWith("the truth is") ||
+    lowerText.startsWith("i know that")
+  ) {
+    // If these verbs/structures are present along with a controversial topic, likely a claim
+    if (topicalKeywords.some(keyword => lowerText.includes(keyword))) {
+      return true;
+    }
+  }
+  
+  // Additional detection for claims framed as questions
+  if (
+    (lowerText.startsWith("isn't it true that") ||
+     lowerText.startsWith("don't you agree that") ||
+     lowerText.startsWith("wouldn't you say that")) && 
+    topicalKeywords.some(keyword => lowerText.includes(keyword))
+  ) {
+    return true;
+  }
+  
+  // Not detected as a claim
+  return false;
 };
