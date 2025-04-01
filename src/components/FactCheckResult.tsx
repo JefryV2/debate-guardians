@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface FactCheckItemProps {
   factCheck: FactCheck;
@@ -17,11 +18,11 @@ const FactCheckItem = ({ factCheck, claimText, speakerName }: FactCheckItemProps
   const getVerdictIcon = () => {
     switch (verdict) {
       case 'true':
-        return <CheckCircle className="text-debate-true h-5 w-5" />;
+        return <CheckCircle className="text-debate-true h-5 w-5 flex-shrink-0" />;
       case 'false':
-        return <XCircle className="text-debate-false h-5 w-5" />;
+        return <XCircle className="text-debate-false h-5 w-5 flex-shrink-0" />;
       default:
-        return <AlertCircle className="text-debate-unverified h-5 w-5" />;
+        return <AlertCircle className="text-debate-unverified h-5 w-5 flex-shrink-0" />;
     }
   };
   
@@ -37,23 +38,37 @@ const FactCheckItem = ({ factCheck, claimText, speakerName }: FactCheckItemProps
   };
   
   return (
-    <div className={cn("mb-4 p-3 rounded-md border", getVerdictClass())}>
-      <div className="flex items-start gap-2">
+    <div className={cn("mb-4 p-4 rounded-md border shadow-sm", getVerdictClass())}>
+      <div className="flex items-start gap-3">
         {getVerdictIcon()}
-        <div>
-          <div className="font-medium">{speakerName}: "{claimText.length > 50 ? claimText.substring(0, 50) + '...' : claimText}"</div>
-          <div className="text-sm mt-1">
+        <div className="w-full">
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <div className="font-medium cursor-help border-b border-dotted border-gray-400">
+                "{claimText.length > 70 ? claimText.substring(0, 70) + '...' : claimText}"
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80 p-4">
+              <p className="text-sm">{claimText}</p>
+            </HoverCardContent>
+          </HoverCard>
+          <div className="text-sm mt-1 flex items-center gap-2">
+            <span className="font-semibold">Speaker:</span> 
+            <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-800">{speakerName}</span>
+          </div>
+          <div className="flex items-center mt-2">
             <span className="font-semibold">Verdict: </span> 
             <span className={cn(
-              verdict === 'true' ? "text-debate-true" : 
-              verdict === 'false' ? "text-debate-false" : 
-              "text-debate-unverified"
+              "ml-2 px-2 py-0.5 rounded-full text-white text-xs font-bold",
+              verdict === 'true' ? "bg-debate-true" : 
+              verdict === 'false' ? "bg-debate-false" : 
+              "bg-debate-unverified"
             )}>
               {verdict.charAt(0).toUpperCase() + verdict.slice(1)}
             </span>
           </div>
-          <div className="text-sm"><span className="font-semibold">Source: </span>{source}</div>
-          <div className="text-sm mt-1">{explanation}</div>
+          <div className="text-sm mt-2"><span className="font-semibold">Source: </span>{source}</div>
+          <div className="text-sm mt-2 bg-white/80 p-2 rounded">{explanation}</div>
         </div>
       </div>
     </div>
@@ -84,26 +99,35 @@ const FactCheckResults = () => {
   };
   
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl">Fact Check Results</CardTitle>
+    <Card className="h-full border-0 shadow-md bg-white/70 backdrop-blur-sm">
+      <CardHeader className="pb-2 border-b">
+        <CardTitle className="text-xl flex items-center gap-2">
+          <div className="p-1.5 rounded-full bg-slate-100">
+            <CheckCircle className="h-5 w-5 text-slate-600" />
+          </div>
+          Fact Check Results
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
-          {factChecks.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              No fact checks yet. Make some claims!
-            </div>
-          ) : (
-            sortedFactChecks.map(factCheck => (
-              <FactCheckItem 
-                key={factCheck.id} 
-                factCheck={factCheck}
-                claimText={getClaimText(factCheck.claimId)}
-                speakerName={getSpeakerName(factCheck.claimId)}
-              />
-            ))
-          )}
+      <CardContent className="p-0">
+        <ScrollArea className="h-[450px] pr-4">
+          <div className="p-4">
+            {factChecks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center text-gray-500 py-16">
+                <AlertCircle className="h-12 w-12 text-gray-300 mb-4" />
+                <p className="text-lg font-medium">No fact checks yet</p>
+                <p className="text-sm mt-1">Make some claims to see them analyzed here</p>
+              </div>
+            ) : (
+              sortedFactChecks.map(factCheck => (
+                <FactCheckItem 
+                  key={factCheck.id} 
+                  factCheck={factCheck}
+                  claimText={getClaimText(factCheck.claimId)}
+                  speakerName={getSpeakerName(factCheck.claimId)}
+                />
+              ))
+            )}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>

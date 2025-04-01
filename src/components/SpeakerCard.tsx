@@ -4,39 +4,73 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Mic, MicOff } from "lucide-react";
+import { EmotionType } from "@/services/speechService";
 
 interface SpeakerCardProps {
   speaker: Speaker;
   isActive: boolean;
   onClick: () => void;
+  emotion?: EmotionType;
 }
 
-const SpeakerCard = ({ speaker, isActive, onClick }: SpeakerCardProps) => {
+const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) => {
   const { name, avatar, accuracyScore, color } = speaker;
+  
+  const getBorderColor = () => {
+    if (isActive) {
+      return `border-${color} shadow-md shadow-${color}/20`;
+    }
+    return "border-gray-200";
+  };
+  
+  const getEmotionLabel = () => {
+    if (!emotion) return null;
+    
+    return (
+      <div className={cn(
+        "absolute top-0 right-0 text-xs font-medium py-1 px-2 rounded-full transform translate-x-1/3 -translate-y-1/3",
+        emotion === 'angry' ? "bg-red-500 text-white" :
+        emotion === 'happy' ? "bg-green-500 text-white" :
+        emotion === 'sad' ? "bg-blue-500 text-white" :
+        emotion === 'excited' ? "bg-yellow-500 text-white" :
+        emotion === 'frustrated' ? "bg-orange-500 text-white" :
+        emotion === 'uncertain' ? "bg-purple-500 text-white" :
+        "bg-gray-500 text-white"
+      )}>
+        {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+      </div>
+    );
+  };
   
   return (
     <Card 
       className={cn(
-        "w-full cursor-pointer transition-all", 
-        isActive ? `border-${color} shadow-lg` : "border-gray-200"
+        "w-full cursor-pointer transition-all hover:scale-[1.02] duration-200", 
+        getBorderColor()
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4 flex flex-col items-center">
-        <div className="relative mb-2">
-          <img 
-            src={avatar} 
-            alt={name} 
-            className="w-20 h-20 rounded-full border-2 border-gray-200"
-          />
+      <CardContent className="p-4 flex flex-col items-center relative">
+        <div className="relative mb-3 mt-2">
           <div className={cn(
-            "absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center",
-            isActive ? "bg-green-500" : "bg-gray-300"
+            "w-20 h-20 rounded-full overflow-hidden border-2",
+            isActive ? `border-${color}` : "border-gray-200"
+          )}>
+            <img 
+              src={avatar} 
+              alt={name} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {getEmotionLabel()}
+          <div className={cn(
+            "absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center",
+            isActive ? `bg-${color}` : "bg-gray-300"
           )}>
             {isActive ? (
-              <Mic className="w-3 h-3 text-white" />
+              <Mic className="w-4 h-4 text-white" />
             ) : (
-              <MicOff className="w-3 h-3 text-white" />
+              <MicOff className="w-4 h-4 text-white" />
             )}
           </div>
         </div>
@@ -46,23 +80,22 @@ const SpeakerCard = ({ speaker, isActive, onClick }: SpeakerCardProps) => {
         <div className="w-full mt-2">
           <div className="flex justify-between text-sm mb-1">
             <span>Accuracy</span>
-            <span>{accuracyScore}%</span>
+            <span className={cn(
+              accuracyScore > 80 ? "text-green-600 font-semibold" : 
+              accuracyScore > 50 ? "text-yellow-600 font-semibold" : 
+              "text-red-600 font-semibold"
+            )}>
+              {accuracyScore}%
+            </span>
           </div>
           <Progress 
             value={accuracyScore} 
-            className={cn(
-              "h-2",
-              accuracyScore > 80 ? "bg-green-100" : 
-              accuracyScore > 50 ? "bg-yellow-100" : "bg-red-100"
-            )}
-          />
-          <div 
-            className={cn(
-              "h-full", 
+            className="h-2"
+            indicatorClassName={cn(
               accuracyScore > 80 ? "bg-green-500" : 
-              accuracyScore > 50 ? "bg-yellow-500" : "bg-red-500"
-            )} 
-            style={{ width: `${accuracyScore}%` }} 
+              accuracyScore > 50 ? "bg-yellow-500" : 
+              "bg-red-500"
+            )}
           />
         </div>
       </CardContent>

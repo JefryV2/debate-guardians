@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh } from "lucide-react";
+import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const DebateRoom = () => {
   const { 
@@ -160,163 +161,213 @@ const DebateRoom = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl font-bold">Debate Guardians</CardTitle>
-              <CardDescription>Real-time fact-checking for honest debates</CardDescription>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="debug-mode" 
-                  checked={debugMode}
-                  onCheckedChange={setDebugMode}
-                />
-                <Label htmlFor="debug-mode" className="flex items-center gap-1">
-                  <Bug className="h-4 w-4" />
-                  Debug Mode
-                </Label>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
+      <div className="max-w-screen-xl mx-auto">
+        <Card className="mb-6 shadow-lg border-0 bg-white/80 backdrop-blur">
+          <CardHeader className="pb-4 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+                  Debate Guardians
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  AI-powered fact-checking for more honest debates
+                </CardDescription>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="emotion-detection" 
-                  checked={emotionDetectionEnabled}
-                  onCheckedChange={setEmotionDetectionEnabled}
-                />
-                <Label htmlFor="emotion-detection" className="flex items-center gap-1">
-                  {getEmotionIcon(currentEmotion)}
-                  Emotion Detection
-                </Label>
-              </div>
-              <Button
-                onClick={() => clearTranscript()}
-                variant="outline"
-                size="icon"
-                title="Clear transcript"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={() => setIsEditingSpeakers(!isEditingSpeakers)}
-                variant="outline"
-                size="icon"
-                title="Edit speakers"
-                className={cn(isEditingSpeakers && "bg-muted")}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={toggleMicrophone}
-                variant={activeListener ? "destructive" : "default"}
-                className="flex items-center gap-2"
-                disabled={isEditingSpeakers}
-              >
-                {activeListener ? (
-                  <>
-                    <MicOff className="h-4 w-4" />
-                    Stop Listening
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-4 w-4" />
-                    Start Listening
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {/* Speaker sections */}
-            <div className="md:col-span-1">
-              <h3 className="text-lg font-medium mb-3">Speakers</h3>
-              {isEditingSpeakers ? (
-                <div className="space-y-4">
-                  {speakers.map((speaker, i) => (
-                    <div key={speaker.id} className="space-y-2">
-                      <label htmlFor={`speaker-${i}`} className="text-sm font-medium">
-                        Speaker {i + 1} Name:
-                      </label>
-                      <Input
-                        id={`speaker-${i}`}
-                        value={speakerNames[i]}
-                        onChange={(e) => handleSpeakerNameChange(i, e.target.value)}
-                        placeholder={`Speaker ${i + 1}`}
-                      />
-                    </div>
-                  ))}
-                  <div className="flex justify-end pt-2">
-                    <Button 
-                      onClick={() => setIsEditingSpeakers(false)} 
-                      variant="ghost" 
-                      className="mr-2"
-                    >
-                      Cancel
-                    </Button>
-                    <Button onClick={saveSpeakerChanges}>Save</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
-                  {speakers.map((speaker) => (
-                    <SpeakerCard 
-                      key={speaker.id} 
-                      speaker={speaker}
-                      isActive={activeListener && currentSpeakerId === speaker.id}
-                      onClick={() => setCurrentSpeakerId(speaker.id)}
-                      emotion={currentSpeakerId === speaker.id && emotionDetectionEnabled ? currentEmotion : undefined}
-                    />
-                  ))}
-                </div>
-              )}
-              
-              {/* Emotion display */}
-              {emotionDetectionEnabled && activeListener && (
-                <div className="mt-4 p-3 bg-muted rounded-md">
-                  <h4 className="text-sm font-medium mb-2">Current Speaker Emotion</h4>
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="emotion-detection" 
+                    checked={emotionDetectionEnabled}
+                    onCheckedChange={setEmotionDetectionEnabled}
+                  />
+                  <Label htmlFor="emotion-detection" className="flex items-center gap-1 text-sm">
                     {getEmotionIcon(currentEmotion)}
-                    <span className="capitalize">{currentEmotion}</span>
-                  </div>
+                    Emotion Detection
+                  </Label>
                 </div>
-              )}
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="debug-mode" 
+                    checked={debugMode}
+                    onCheckedChange={setDebugMode}
+                  />
+                  <Label htmlFor="debug-mode" className="flex items-center gap-1 text-sm">
+                    <Bug className="h-4 w-4" />
+                    Debug
+                  </Label>
+                </div>
+                <Button
+                  onClick={() => clearTranscript()}
+                  variant="outline"
+                  size="icon"
+                  title="Clear transcript"
+                  className="border-slate-200"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => setIsEditingSpeakers(!isEditingSpeakers)}
+                  variant="outline"
+                  size="icon"
+                  title="Edit speakers"
+                  className={cn(
+                    "border-slate-200",
+                    isEditingSpeakers && "bg-muted"
+                  )}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={toggleMicrophone}
+                  variant={activeListener ? "destructive" : "default"}
+                  className="flex items-center gap-2 shadow-md"
+                  disabled={isEditingSpeakers}
+                  size="sm"
+                >
+                  {activeListener ? (
+                    <>
+                      <MicOff className="h-4 w-4" />
+                      Stop Listening
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-4 w-4" />
+                      Start Listening
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            
-            {/* Main content area */}
-            <div className="md:col-span-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <TranscriptDisplay />
-                <FactCheckResults />
+          </CardHeader>
+          
+          <CardContent className="px-4 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Speaker sections */}
+              <div className="lg:col-span-1">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium text-slate-800">Speakers</h3>
+                  {emotionDetectionEnabled && activeListener && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs flex gap-1 items-center">
+                          <Info className="h-3 w-3" />
+                          Emotions
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72">
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Voice Emotion Detection</h4>
+                          <p className="text-sm text-muted-foreground">
+                            The system analyzes voice patterns to detect emotions:
+                          </p>
+                          <ul className="text-xs space-y-1.5">
+                            <li className="flex items-center gap-2">
+                              <Angry className="h-4 w-4 text-red-500" /> Angry: Raised voice, sharp tones
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Smile className="h-4 w-4 text-green-500" /> Happy: Upbeat, energetic patterns
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Frown className="h-4 w-4 text-blue-500" /> Sad: Lower, slower speech patterns
+                            </li>
+                          </ul>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                {isEditingSpeakers ? (
+                  <div className="space-y-4 bg-white p-4 rounded-xl shadow-sm">
+                    {speakers.map((speaker, i) => (
+                      <div key={speaker.id} className="space-y-2">
+                        <label htmlFor={`speaker-${i}`} className="text-sm font-medium block">
+                          Speaker {i + 1} Name:
+                        </label>
+                        <Input
+                          id={`speaker-${i}`}
+                          value={speakerNames[i]}
+                          onChange={(e) => handleSpeakerNameChange(i, e.target.value)}
+                          placeholder={`Speaker ${i + 1}`}
+                          className="border-slate-200"
+                        />
+                      </div>
+                    ))}
+                    <div className="flex justify-end pt-2">
+                      <Button 
+                        onClick={() => setIsEditingSpeakers(false)} 
+                        variant="ghost" 
+                        className="mr-2"
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={saveSpeakerChanges} size="sm">Save</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
+                    {speakers.map((speaker) => (
+                      <SpeakerCard 
+                        key={speaker.id} 
+                        speaker={speaker}
+                        isActive={activeListener && currentSpeakerId === speaker.id}
+                        onClick={() => setCurrentSpeakerId(speaker.id)}
+                        emotion={currentSpeakerId === speaker.id && emotionDetectionEnabled ? currentEmotion : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Main content area */}
+              <div className="lg:col-span-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <TranscriptDisplay />
+                  <FactCheckResults />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between text-sm text-muted-foreground pt-2 pb-4 border-t">
+            <p>Debate Guardians v1.0</p>
+            <p>Using Web Speech API & AI-Powered Fact-Checking</p>
+          </CardFooter>
+        </Card>
+        
+        <Card className="p-5 border-0 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md">
+          <div className="flex items-start">
+            <div className="bg-blue-100 p-2 rounded-full mr-3">
+              <Info className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-medium text-slate-800 mb-2">Using the Debate Guardian</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-700">
+                <div>
+                  <p className="mb-2 font-medium text-slate-900">Getting Started:</p>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Select a speaker by clicking their card</li>
+                    <li>Click "Start Listening" and begin speaking</li>
+                    <li>Make claims to see them fact-checked in real-time</li>
+                  </ol>
+                </div>
+                
+                <div>
+                  <p className="mb-2 font-medium text-slate-900">Features:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Voice emotion detection analyzes speaker's tone</li>
+                    <li>AI fact-checking identifies and verifies claims</li>
+                    <li>Claims containing facts are automatically detected</li>
+                    <li>Speaker accuracy scores are calculated over time</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between text-sm text-muted-foreground pt-2 pb-4 border-t">
-          <p>Debate Guardians v1.0</p>
-          <p>Using Web Speech API & Fact-Check Database</p>
-        </CardFooter>
-      </Card>
-      
-      <Card className="p-4 bg-blue-50 border border-blue-200">
-        <h3 className="font-medium mb-2">Using the app</h3>
-        <p className="text-sm mb-3">
-          1. Click "Start Listening" and begin speaking
-        </p>
-        <ul className="text-sm list-disc pl-5 space-y-1">
-          <li>Make statements containing phrases like "studies show", "everyone knows", etc.</li>
-          <li>The system will identify these as claims and check them against the database</li>
-          <li>Enable emotion detection to analyze speaker's tone of voice</li>
-          <li>False claims will trigger an alert sound</li>
-          <li>Accuracy scores are calculated for each speaker</li>
-          <li>Click on a speaker to set them as the current speaker</li>
-        </ul>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
