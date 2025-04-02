@@ -1,3 +1,4 @@
+
 import { Claim } from "@/context/DebateContext";
 import { commonMyths } from "@/data/commonMyths";
 
@@ -74,8 +75,8 @@ const geminiFactCheck = async (claim: Claim) => {
       Focus on factual accuracy and reliability.
     `;
     
-    // Make request to Gemini API
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey, {
+    // Make request to Gemini API - Updated to use gemini-2.0-flash model
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -158,7 +159,7 @@ const geminiFactCheck = async (claim: Claim) => {
     return {
       claimId: claim.id,
       verdict: normalizedVerdict,
-      source: parsedResponse.source || "Google Gemini AI",
+      source: parsedResponse.source || "Google Gemini 2.0 Flash",
       explanation: parsedResponse.explanation || "This claim has been analyzed by AI."
     };
     
