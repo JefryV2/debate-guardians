@@ -201,7 +201,7 @@ const processFinalTranscript = (
 export const detectClaim = (text: string): boolean => {
   const lowerText = text.toLowerCase();
   
-  // Categories of claim indicators with weighted importance
+  // Improved categories of claim indicators with weighted importance
   const strongClaimIndicators = [
     "studies show",
     "research indicates",
@@ -215,7 +215,16 @@ export const detectClaim = (text: string): boolean => {
     "science tells us",
     "research demonstrates",
     "facts show",
-    "studies confirm"
+    "studies confirm",
+    "i believe",
+    "i think",
+    "i'm certain",
+    "i am sure",
+    "i know",
+    "in reality",
+    "the truth is",
+    "it's a fact",
+    "in fact"
   ];
   
   const mediumClaimIndicators = [
@@ -231,7 +240,15 @@ export const detectClaim = (text: string): boolean => {
     "all people",
     "nobody",
     "most people",
-    "vast majority"
+    "vast majority",
+    "typically",
+    "generally",
+    "usually",
+    "commonly",
+    "as we all know",
+    "history shows",
+    "simply put",
+    "basically"
   ];
   
   const topicalKeywords = [
@@ -262,7 +279,33 @@ export const detectClaim = (text: string): boolean => {
     "election",
     "transgender",
     "gender",
-    "religion"
+    "religion",
+    "tech",
+    "technology",
+    "artificial intelligence",
+    "ai",
+    "social media",
+    "privacy",
+    "data",
+    "security",
+    "energy",
+    "fossil fuels",
+    "renewable",
+    "nuclear",
+    "tax",
+    "taxes",
+    "spending",
+    "debt",
+    "policy",
+    "regulation",
+    "freedom",
+    "rights",
+    "research",
+    "science",
+    "money",
+    "wealth",
+    "poverty",
+    "inequality"
   ];
   
   const statisticalPatterns = [
@@ -273,7 +316,45 @@ export const detectClaim = (text: string): boolean => {
     /decreased by \d+/,
     /majority of/,
     /minority of/,
-    /most of/
+    /most of/,
+    /many people/,
+    /\d+ times/,
+    /double/,
+    /triple/,
+    /\d+ million/,
+    /\d+ billion/,
+    /half of/,
+    /\d+th percentile/
+  ];
+  
+  // Check for sentence structure that indicates claims
+  const claimStructures = [
+    /^(the|this|that|these|those|it|they) (is|are|was|were) /i,
+    /^(we|i) (know|believe|think) that /i,
+    /^(studies|research|data|evidence|experts|scientists) (show|indicate|suggest|prove|confirm|demonstrate) /i,
+    /^(according to|based on) /i,
+    /^(in|throughout) (reality|fact|truth|practice) /i,
+    /results in/i,
+    /leads to/i,
+    /causes/i,
+    /prevents/i,
+    /reduces/i,
+    /increases/i
+  ];
+
+  // Factual comparison patterns
+  const comparisonPatterns = [
+    /better than/i,
+    /worse than/i,
+    /more than/i,
+    /less than/i,
+    /higher than/i,
+    /lower than/i,
+    /greater than/i,
+    /superior to/i,
+    /inferior to/i,
+    /outperforms/i,
+    /underperforms/i
   ];
   
   // Check for strong claim indicators
@@ -294,6 +375,22 @@ export const detectClaim = (text: string): boolean => {
   // Check for statistical patterns which often indicate claims
   if (statisticalPatterns.some(pattern => pattern.test(lowerText))) {
     return true;
+  }
+  
+  // Check for claim sentence structures
+  if (claimStructures.some(pattern => pattern.test(lowerText))) {
+    // If the sentence follows a claim structure and has a controversial topic, likely a claim
+    if (topicalKeywords.some(keyword => lowerText.includes(keyword))) {
+      return true;
+    }
+  }
+  
+  // Check comparison patterns which often indicate claims
+  if (comparisonPatterns.some(pattern => pattern.test(lowerText))) {
+    // If comparison involves a topic, it's likely a claim
+    if (topicalKeywords.some(keyword => lowerText.includes(keyword))) {
+      return true;
+    }
   }
   
   // Check sentence structure patterns that often indicate claims
@@ -317,9 +414,25 @@ export const detectClaim = (text: string): boolean => {
   if (
     (lowerText.startsWith("isn't it true that") ||
      lowerText.startsWith("don't you agree that") ||
-     lowerText.startsWith("wouldn't you say that")) && 
+     lowerText.startsWith("wouldn't you say that") ||
+     lowerText.startsWith("don't we all know that") ||
+     lowerText.startsWith("couldn't we say that") ||
+     lowerText.startsWith("isn't it obvious that")) && 
     topicalKeywords.some(keyword => lowerText.includes(keyword))
   ) {
+    return true;
+  }
+
+  // Check for definitive statements with strong words
+  const definitiveWords = ['proof', 'proven', 'conclude', 'conclusive', 'undeniable', 'undoubtedly'];
+  if (definitiveWords.some(word => lowerText.includes(word))) {
+    return true;
+  }
+  
+  // Sentence length heuristic - longer sentences are more likely to be claims
+  // (combined with at least some content words)
+  if (lowerText.split(' ').length > 15 && 
+      topicalKeywords.some(keyword => lowerText.includes(keyword))) {
     return true;
   }
   
