@@ -42,6 +42,13 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
     );
   };
   
+  // Get progress color based on accuracy score
+  const getProgressColor = () => {
+    if (accuracyScore > 80) return "bg-green-500";
+    if (accuracyScore > 50) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+  
   return (
     <Card 
       className={cn(
@@ -90,12 +97,7 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
           </div>
           <Progress 
             value={accuracyScore} 
-            className="h-2"
-            indicatorClassName={cn(
-              accuracyScore > 80 ? "bg-green-500" : 
-              accuracyScore > 50 ? "bg-yellow-500" : 
-              "bg-red-500"
-            )}
+            className={cn("h-2", getProgressColor())}
           />
         </div>
       </CardContent>

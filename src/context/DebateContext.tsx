@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "@/lib/toast";
+import { EmotionType } from "@/services/speechService";
 
 export interface Claim {
   id: string;
@@ -33,6 +34,7 @@ export interface TranscriptEntry {
   speakerId: string;
   timestamp: Date;
   isClaim: boolean;
+  emotion?: EmotionType;
 }
 
 interface DebateContextType {

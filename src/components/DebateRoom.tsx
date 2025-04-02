@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh, Info } from "lucide-react";
+import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh, Info, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const DebateRoom = () => {
   const { 
@@ -36,6 +37,27 @@ const DebateRoom = () => {
   const [speakerNames, setSpeakerNames] = useState(speakers.map(s => s.name));
   const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('neutral');
   const [emotionDetectionEnabled, setEmotionDetectionEnabled] = useState(false);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem("gemini-api-key") || "");
+  const [aiEnabled, setAiEnabled] = useState(Boolean(localStorage.getItem("gemini-api-key")));
+
+  // Save API key
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem("gemini-api-key", apiKey.trim());
+      setAiEnabled(true);
+      toast.success("API key saved", {
+        description: "Gemini AI is now enabled for fact-checking"
+      });
+    } else {
+      localStorage.removeItem("gemini-api-key");
+      setAiEnabled(false);
+      toast.info("API key removed", {
+        description: "Using fallback fact-checking system"
+      });
+    }
+    setApiKeyDialogOpen(false);
+  };
 
   // Handle microphone toggle
   const toggleMicrophone = () => {
@@ -117,7 +139,7 @@ const DebateRoom = () => {
     // Show processing indicator
     if (debugMode) {
       toast.info(`AI analyzing claim: ${lastClaim.text.substring(0, 50)}...`, {
-        description: "Checking facts against scientific evidence...",
+        description: aiEnabled ? "Using Gemini AI for fact-checking" : "Using fallback fact-checking system",
         duration: 2000,
       });
     }
@@ -141,7 +163,7 @@ const DebateRoom = () => {
     };
     
     checkFact();
-  }, [claims, addFactCheck, debugMode]);
+  }, [claims, addFactCheck, debugMode, aiEnabled]);
   
   // Handle speaker name changes
   const handleSpeakerNameChange = (index: number, name: string) => {
@@ -171,10 +193,23 @@ const DebateRoom = () => {
                   Debate Guardians
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  AI-powered fact-checking for more honest debates
+                  {aiEnabled ? "Gemini AI-powered fact-checking" : "AI-powered fact-checking"} for more honest debates
                 </CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => setApiKeyDialogOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-slate-200 flex items-center gap-1", 
+                    aiEnabled ? "text-green-600" : ""
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  {aiEnabled ? "AI Enabled" : "Setup AI"}
+                </Button>
+                
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="emotion-detection" 
@@ -333,7 +368,7 @@ const DebateRoom = () => {
           
           <CardFooter className="flex justify-between text-sm text-muted-foreground pt-2 pb-4 border-t">
             <p>Debate Guardians v1.0</p>
-            <p>Using Web Speech API & AI-Powered Fact-Checking</p>
+            <p>Using {aiEnabled ? "Gemini AI" : "Web Speech API"} & Fact-Checking</p>
           </CardFooter>
         </Card>
         
@@ -348,6 +383,7 @@ const DebateRoom = () => {
                 <div>
                   <p className="mb-2 font-medium text-slate-900">Getting Started:</p>
                   <ol className="list-decimal pl-5 space-y-1">
+                    <li>Click "Setup AI" to add your Gemini API key</li>
                     <li>Select a speaker by clicking their card</li>
                     <li>Click "Start Listening" and begin speaking</li>
                     <li>Make claims to see them fact-checked in real-time</li>
@@ -357,8 +393,8 @@ const DebateRoom = () => {
                 <div>
                   <p className="mb-2 font-medium text-slate-900">Features:</p>
                   <ul className="list-disc pl-5 space-y-1">
+                    <li>Gemini AI fact-checking identifies and verifies claims</li>
                     <li>Voice emotion detection analyzes speaker's tone</li>
-                    <li>AI fact-checking identifies and verifies claims</li>
                     <li>Claims containing facts are automatically detected</li>
                     <li>Speaker accuracy scores are calculated over time</li>
                   </ul>
@@ -368,6 +404,37 @@ const DebateRoom = () => {
           </div>
         </Card>
       </div>
+      
+      {/* API Key Dialog */}
+      <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set up Gemini AI Integration</DialogTitle>
+            <DialogDescription>
+              Enter your Google Gemini API key to enable advanced AI-powered fact-checking.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="gemini-api-key">Gemini API Key</Label>
+              <Input 
+                id="gemini-api-key" 
+                value={apiKey} 
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your API key"
+                className="col-span-3"
+              />
+              <p className="text-sm text-muted-foreground">
+                Your API key is stored locally in your browser and never sent to our servers.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" onClick={saveApiKey}>Save API Key</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
