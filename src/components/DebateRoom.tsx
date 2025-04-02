@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh, Info, Shield } from "lucide-react";
+import { Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, Meh, Info, Shield, UserPlus, UserMinus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
@@ -30,7 +30,9 @@ const DebateRoom = () => {
     claims,
     addFactCheck,
     debugMode,
-    setDebugMode
+    setDebugMode,
+    addSpeaker,
+    removeSpeaker
   } = useDebate();
   
   const [isEditingSpeakers, setIsEditingSpeakers] = useState(false);
@@ -40,6 +42,11 @@ const DebateRoom = () => {
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem("gemini-api-key") || "");
   const [aiEnabled, setAiEnabled] = useState(Boolean(localStorage.getItem("gemini-api-key")));
+
+  // Update speaker names when speakers change
+  useEffect(() => {
+    setSpeakerNames(speakers.map(s => s.name));
+  }, [speakers]);
 
   // Save API key
   const saveApiKey = () => {
@@ -182,6 +189,18 @@ const DebateRoom = () => {
     setIsEditingSpeakers(false);
   };
 
+  // Handle speaker removal
+  const handleRemoveSpeaker = (id: string) => {
+    if (activeListener) {
+      toast.error("Cannot remove speakers while listening", {
+        description: "Stop the microphone before removing speakers."
+      });
+      return;
+    }
+    
+    removeSpeaker(id);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
       <div className="max-w-screen-xl mx-auto">
@@ -281,7 +300,21 @@ const DebateRoom = () => {
               {/* Speaker sections */}
               <div className="lg:col-span-1">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-medium text-slate-800">Speakers</h3>
+                  <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Speakers ({speakers.length})
+                  </h3>
+                  {!isEditingSpeakers && !activeListener && (
+                    <Button 
+                      onClick={addSpeaker} 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs flex gap-1 items-center"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Add
+                    </Button>
+                  )}
                   {emotionDetectionEnabled && activeListener && (
                     <Popover>
                       <PopoverTrigger asChild>
@@ -317,9 +350,21 @@ const DebateRoom = () => {
                   <div className="space-y-4 bg-white p-4 rounded-xl shadow-sm">
                     {speakers.map((speaker, i) => (
                       <div key={speaker.id} className="space-y-2">
-                        <label htmlFor={`speaker-${i}`} className="text-sm font-medium block">
-                          Speaker {i + 1} Name:
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label htmlFor={`speaker-${i}`} className="text-sm font-medium block">
+                            Speaker {i + 1} Name:
+                          </label>
+                          {speakers.length > 2 && (
+                            <Button 
+                              onClick={() => handleRemoveSpeaker(speaker.id)} 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <UserMinus className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                         <Input
                           id={`speaker-${i}`}
                           value={speakerNames[i]}
@@ -329,28 +374,52 @@ const DebateRoom = () => {
                         />
                       </div>
                     ))}
-                    <div className="flex justify-end pt-2">
-                      <Button 
-                        onClick={() => setIsEditingSpeakers(false)} 
-                        variant="ghost" 
-                        className="mr-2"
+                    <div className="flex items-center justify-between pt-2 border-t mt-4">
+                      <Button
+                        onClick={addSpeaker}
+                        variant="outline"
                         size="sm"
+                        className="text-xs flex gap-1 items-center"
+                        disabled={speakers.length >= 8}
                       >
-                        Cancel
+                        <UserPlus className="h-3 w-3" />
+                        Add Speaker
                       </Button>
-                      <Button onClick={saveSpeakerChanges} size="sm">Save</Button>
+                      <div className="flex items-center">
+                        <Button 
+                          onClick={() => setIsEditingSpeakers(false)} 
+                          variant="ghost" 
+                          className="mr-2"
+                          size="sm"
+                        >
+                          Cancel
+                        </Button>
+                        <Button onClick={saveSpeakerChanges} size="sm">Save</Button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
                     {speakers.map((speaker) => (
-                      <SpeakerCard 
-                        key={speaker.id} 
-                        speaker={speaker}
-                        isActive={activeListener && currentSpeakerId === speaker.id}
-                        onClick={() => setCurrentSpeakerId(speaker.id)}
-                        emotion={currentSpeakerId === speaker.id && emotionDetectionEnabled ? currentEmotion : undefined}
-                      />
+                      <div key={speaker.id} className="relative">
+                        <SpeakerCard 
+                          speaker={speaker}
+                          isActive={activeListener && currentSpeakerId === speaker.id}
+                          onClick={() => setCurrentSpeakerId(speaker.id)}
+                          emotion={currentSpeakerId === speaker.id && emotionDetectionEnabled ? currentEmotion : undefined}
+                        />
+                        {!activeListener && speakers.length > 2 && (
+                          <Button
+                            onClick={() => handleRemoveSpeaker(speaker.id)}
+                            variant="outline"
+                            size="icon"
+                            className="h-6 w-6 rounded-full absolute -top-2 -right-2 bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:border-red-300"
+                            title={`Remove ${speaker.name}`}
+                          >
+                            <UserMinus className="h-3 w-3 text-red-500" />
+                          </Button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -395,7 +464,7 @@ const DebateRoom = () => {
                   <ul className="list-disc pl-5 space-y-1">
                     <li>Gemini AI fact-checking identifies and verifies claims</li>
                     <li>Voice emotion detection analyzes speaker's tone</li>
-                    <li>Claims containing facts are automatically detected</li>
+                    <li>Add multiple speakers to track different participants</li>
                     <li>Speaker accuracy scores are calculated over time</li>
                   </ul>
                 </div>

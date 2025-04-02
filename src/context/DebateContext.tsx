@@ -52,6 +52,8 @@ interface DebateContextType {
   setCurrentSpeakerId: (id: string) => void;
   debugMode: boolean;
   setDebugMode: (mode: boolean) => void;
+  addSpeaker: () => void; // New function to add speakers
+  removeSpeaker: (id: string) => void; // New function to remove speakers
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -67,6 +69,12 @@ export const useDebate = () => {
 interface DebateProviderProps {
   children: ReactNode;
 }
+
+// Array of colors for speakers
+const speakerColors = [
+  'debate-blue', 'debate-red', 'debate-green', 'debate-orange', 
+  'debate-purple', 'debate-yellow', 'debate-cyan', 'debate-pink'
+];
 
 export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
   const [speakers, setSpeakers] = useState<Speaker[]>([
@@ -96,6 +104,60 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
   const [factChecks, setFactChecks] = useState<FactCheck[]>([]);
   const [currentSpeakerId, setCurrentSpeakerId] = useState<string>('1');
   const [debugMode, setDebugMode] = useState<boolean>(false);
+
+  // Add a new speaker
+  const addSpeaker = () => {
+    // Prevent adding too many speakers
+    if (speakers.length >= 8) {
+      toast.error("Maximum number of speakers reached", {
+        description: "You cannot add more than 8 speakers."
+      });
+      return;
+    }
+    
+    // Generate a new unique ID
+    const newId = String(speakers.length + 1);
+    
+    // Get a color for the new speaker
+    const colorIndex = speakers.length % speakerColors.length;
+    
+    const newSpeaker: Speaker = {
+      id: newId,
+      name: `Speaker ${newId}`,
+      avatar: `https://api.dicebear.com/7.x/personas/svg?seed=Speaker${newId}`,
+      color: speakerColors[colorIndex],
+      accuracyScore: 100,
+      totalClaims: 0,
+      verifiedClaims: 0
+    };
+    
+    setSpeakers([...speakers, newSpeaker]);
+    toast.success(`Added ${newSpeaker.name}`, {
+      description: "New speaker has been added to the debate."
+    });
+  };
+  
+  // Remove a speaker
+  const removeSpeaker = (id: string) => {
+    // Don't allow removing if we only have 2 speakers
+    if (speakers.length <= 2) {
+      toast.error("Cannot remove speaker", {
+        description: "A debate requires at least 2 speakers."
+      });
+      return;
+    }
+    
+    // If removing current speaker, switch to the first available
+    if (id === currentSpeakerId) {
+      const remainingSpeakers = speakers.filter(s => s.id !== id);
+      setCurrentSpeakerId(remainingSpeakers[0].id);
+    }
+    
+    setSpeakers(speakers.filter(speaker => speaker.id !== id));
+    toast.success("Speaker removed", {
+      description: "Speaker has been removed from the debate."
+    });
+  };
 
   const addTranscriptEntry = (entry: Omit<TranscriptEntry, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -194,7 +256,9 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
         currentSpeakerId,
         setCurrentSpeakerId,
         debugMode,
-        setDebugMode
+        setDebugMode,
+        addSpeaker,
+        removeSpeaker
       }}
     >
       {children}
