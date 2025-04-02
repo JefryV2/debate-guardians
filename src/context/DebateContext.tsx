@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "@/lib/toast";
 import { EmotionType } from "@/services/speechService";
@@ -8,6 +7,10 @@ export interface Claim {
   text: string;
   timestamp: string;
   speakerId: string;
+  topic?: string;
+  fallacies?: string[];
+  knowledgeGapIdentified?: boolean;
+  speakingRate?: number; // Words per minute
 }
 
 export interface FactCheck {
@@ -16,6 +19,8 @@ export interface FactCheck {
   verdict: 'true' | 'false' | 'unverified';
   source: string;
   explanation: string;
+  confidenceScore?: number; // 0-100
+  alternativePerspectives?: string[];
 }
 
 export interface Speaker {
@@ -26,6 +31,13 @@ export interface Speaker {
   accuracyScore: number;
   totalClaims: number;
   verifiedClaims: number;
+  claimHistory?: {
+    date: string;
+    totalClaims: number;
+    trueClaims: number;
+    accuracyScore: number;
+  }[];
+  topicExpertise?: Record<string, number>; // Topic name to accuracy score
 }
 
 export interface TranscriptEntry {
@@ -35,6 +47,8 @@ export interface TranscriptEntry {
   timestamp: Date;
   isClaim: boolean;
   emotion?: EmotionType;
+  speakingRate?: number; // Words per minute
+  fallacies?: string[];
 }
 
 interface DebateContextType {
@@ -52,8 +66,8 @@ interface DebateContextType {
   setCurrentSpeakerId: (id: string) => void;
   debugMode: boolean;
   setDebugMode: (mode: boolean) => void;
-  addSpeaker: () => void; // New function to add speakers
-  removeSpeaker: (id: string) => void; // New function to remove speakers
+  addSpeaker: () => void;
+  removeSpeaker: (id: string) => void;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -70,7 +84,6 @@ interface DebateProviderProps {
   children: ReactNode;
 }
 
-// Array of colors for speakers
 const speakerColors = [
   'debate-blue', 'debate-red', 'debate-green', 'debate-orange', 
   'debate-purple', 'debate-yellow', 'debate-cyan', 'debate-pink'
@@ -85,7 +98,9 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       color: 'debate-blue',
       accuracyScore: 100,
       totalClaims: 0,
-      verifiedClaims: 0
+      verifiedClaims: 0,
+      claimHistory: [],
+      topicExpertise: {}
     },
     {
       id: '2',
@@ -94,7 +109,9 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       color: 'debate-red',
       accuracyScore: 100,
       totalClaims: 0,
-      verifiedClaims: 0
+      verifiedClaims: 0,
+      claimHistory: [],
+      topicExpertise: {}
     }
   ]);
   
@@ -105,9 +122,7 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
   const [currentSpeakerId, setCurrentSpeakerId] = useState<string>('1');
   const [debugMode, setDebugMode] = useState<boolean>(false);
 
-  // Add a new speaker
   const addSpeaker = () => {
-    // Prevent adding too many speakers
     if (speakers.length >= 8) {
       toast.error("Maximum number of speakers reached", {
         description: "You cannot add more than 8 speakers."
@@ -115,10 +130,7 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       return;
     }
     
-    // Generate a new unique ID
     const newId = String(speakers.length + 1);
-    
-    // Get a color for the new speaker
     const colorIndex = speakers.length % speakerColors.length;
     
     const newSpeaker: Speaker = {
@@ -128,7 +140,9 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       color: speakerColors[colorIndex],
       accuracyScore: 100,
       totalClaims: 0,
-      verifiedClaims: 0
+      verifiedClaims: 0,
+      claimHistory: [],
+      topicExpertise: {}
     };
     
     setSpeakers([...speakers, newSpeaker]);
@@ -136,10 +150,8 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       description: "New speaker has been added to the debate."
     });
   };
-  
-  // Remove a speaker
+
   const removeSpeaker = (id: string) => {
-    // Don't allow removing if we only have 2 speakers
     if (speakers.length <= 2) {
       toast.error("Cannot remove speaker", {
         description: "A debate requires at least 2 speakers."
@@ -147,7 +159,6 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       return;
     }
     
-    // If removing current speaker, switch to the first available
     if (id === currentSpeakerId) {
       const remainingSpeakers = speakers.filter(s => s.id !== id);
       setCurrentSpeakerId(remainingSpeakers[0].id);
@@ -161,21 +172,64 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
 
   const addTranscriptEntry = (entry: Omit<TranscriptEntry, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
-    const newEntry = { ...entry, id };
+    
+    const words = entry.text.trim().split(/\s+/).length;
+    const speakingRate = words * (60 / 5);
+    
+    const fallacies = detectLogicalFallacies(entry.text);
+    
+    const newEntry = { 
+      ...entry, 
+      id,
+      speakingRate,
+      fallacies: fallacies.length > 0 ? fallacies : undefined
+    };
+    
     setTranscript(prev => [...prev, newEntry]);
 
     if (entry.isClaim) {
+      const topic = classifyTopic(entry.text);
+      const knowledgeGapIdentified = identifyKnowledgeGaps(entry.text);
+      
       const newClaim = {
         id: id,
         text: entry.text,
         timestamp: entry.timestamp.toISOString(),
-        speakerId: entry.speakerId
+        speakerId: entry.speakerId,
+        topic,
+        fallacies: fallacies.length > 0 ? fallacies : undefined,
+        knowledgeGapIdentified,
+        speakingRate
       };
+      
       setClaims(prev => [...prev, newClaim]);
+      
+      if (fallacies.length > 0) {
+        const speaker = speakers.find(s => s.id === entry.speakerId);
+        toast.warning(`Fallacy detected: ${fallacies[0]}`, {
+          description: `From ${speaker?.name || 'Speaker'}: "${entry.text.substring(0, 50)}..."`,
+          duration: 4000,
+        });
+      }
+      
+      if (speakingRate > 180) {
+        const speaker = speakers.find(s => s.id === entry.speakerId);
+        toast.info(`Fast speech detected`, {
+          description: `${speaker?.name || 'Speaker'} is speaking rapidly at ${Math.round(speakingRate)} words per minute`,
+          duration: 3000,
+        });
+      }
+      
+      if (knowledgeGapIdentified) {
+        toast.info(`Knowledge Gap Identified`, {
+          description: `This claim touches on an area with limited scientific consensus`,
+          duration: 4000,
+        });
+      }
       
       if (debugMode) {
         toast.info(`Claim detected: ${entry.text.substring(0, 50)}...`, {
-          description: `From Speaker ${entry.speakerId}`,
+          description: `From Speaker ${entry.speakerId}${topic ? ` | Topic: ${topic}` : ''}`,
           duration: 3000,
         });
       }
@@ -187,12 +241,13 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
     setClaims([]);
     setFactChecks([]);
     
-    // Reset speaker scores
     setSpeakers(prev => prev.map(speaker => ({
       ...speaker,
       accuracyScore: 100,
       totalClaims: 0,
-      verifiedClaims: 0
+      verifiedClaims: 0,
+      claimHistory: [],
+      topicExpertise: {}
     })));
     
     toast.info("Debate transcript cleared");
@@ -200,10 +255,12 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
 
   const addFactCheck = (factCheck: Omit<FactCheck, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
-    const newFactCheck = { ...factCheck, id };
+    
+    const confidenceScore = generateConfidenceScore(factCheck.verdict);
+    
+    const newFactCheck = { ...factCheck, id, confidenceScore };
     setFactChecks(prev => [...prev, newFactCheck]);
 
-    // Update speaker accuracy score
     const claim = claims.find(c => c.id === factCheck.claimId);
     if (claim) {
       setSpeakers(prev => prev.map(speaker => {
@@ -211,17 +268,48 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
           const totalClaims = speaker.totalClaims + 1;
           const verifiedClaims = speaker.verifiedClaims + (factCheck.verdict === 'true' ? 1 : 0);
           const accuracyScore = Math.round((verifiedClaims / totalClaims) * 100);
+          
+          const today = new Date().toISOString().split('T')[0];
+          const claimHistory = [...(speaker.claimHistory || [])];
+          const existingEntry = claimHistory.find(entry => entry.date === today);
+          
+          if (existingEntry) {
+            existingEntry.totalClaims += 1;
+            existingEntry.trueClaims += factCheck.verdict === 'true' ? 1 : 0;
+            existingEntry.accuracyScore = Math.round((existingEntry.trueClaims / existingEntry.totalClaims) * 100);
+          } else {
+            claimHistory.push({
+              date: today,
+              totalClaims: 1,
+              trueClaims: factCheck.verdict === 'true' ? 1 : 0,
+              accuracyScore: factCheck.verdict === 'true' ? 100 : 0
+            });
+          }
+          
+          const topicExpertise = { ...(speaker.topicExpertise || {}) };
+          if (claim.topic) {
+            const currentExpertise = topicExpertise[claim.topic] || 0;
+            const totalTopicClaims = (topicExpertise[`${claim.topic}_total`] || 0) + 1;
+            const verifiedTopicClaims = (topicExpertise[`${claim.topic}_verified`] || 0) + 
+                                       (factCheck.verdict === 'true' ? 1 : 0);
+            
+            topicExpertise[claim.topic] = Math.round((verifiedTopicClaims / totalTopicClaims) * 100);
+            topicExpertise[`${claim.topic}_total`] = totalTopicClaims;
+            topicExpertise[`${claim.topic}_verified`] = verifiedTopicClaims;
+          }
+          
           return {
             ...speaker,
             totalClaims,
             verifiedClaims,
-            accuracyScore
+            accuracyScore,
+            claimHistory,
+            topicExpertise
           };
         }
         return speaker;
       }));
 
-      // Display toast for false claims
       if (factCheck.verdict === 'false') {
         const speaker = speakers.find(s => s.id === claim.speakerId);
         toast.error(`False Claim Detected!`, {
@@ -229,7 +317,6 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
           duration: 5000,
         });
         
-        // Play beep sound and interrupt with correction
         try {
           const beep = new Audio('/beep.mp3');
           beep.play().catch(e => console.log('Audio play failed:', e));
@@ -264,4 +351,130 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       {children}
     </DebateContext.Provider>
   );
+};
+
+const classifyTopic = (text: string): string | undefined => {
+  const lowerText = text.toLowerCase();
+  
+  const topicKeywords: Record<string, string[]> = {
+    'Politics': ['government', 'election', 'democrat', 'republican', 'congress', 'senate', 'policy', 'president', 'political', 'legislation', 'vote'],
+    'Health': ['vaccine', 'medicine', 'doctor', 'hospital', 'healthcare', 'treatment', 'disease', 'cure', 'medical', 'pandemic', 'covid'],
+    'Science': ['research', 'scientist', 'study', 'evidence', 'experiment', 'laboratory', 'discovery', 'innovation', 'data', 'theory'],
+    'Climate': ['global warming', 'climate change', 'environment', 'carbon', 'emissions', 'temperature', 'pollution', 'renewable', 'sustainable'],
+    'Economics': ['economy', 'inflation', 'market', 'financial', 'budget', 'tax', 'spending', 'economic', 'recession', 'income', 'investment'],
+    'Education': ['school', 'university', 'college', 'student', 'teacher', 'education', 'learn', 'classroom', 'academic', 'degree', 'curriculum'],
+    'Technology': ['computer', 'digital', 'internet', 'software', 'hardware', 'social media', 'artificial intelligence', 'tech', 'innovation', 'algorithm'],
+    'Social Issues': ['equality', 'rights', 'justice', 'discrimination', 'diversity', 'inclusion', 'gender', 'race', 'community', 'society'],
+  };
+  
+  for (const [topic, keywords] of Object.entries(topicKeywords)) {
+    if (keywords.some(keyword => lowerText.includes(keyword))) {
+      return topic;
+    }
+  }
+  
+  return undefined;
+};
+
+const detectLogicalFallacies = (text: string): string[] => {
+  const lowerText = text.toLowerCase();
+  const detectedFallacies: string[] = [];
+  
+  const fallacyPatterns: Record<string, RegExp[]> = {
+    'Ad Hominem': [
+      /attack.*person/i, /character.*not.*argument/i,
+      /stupid/i, /idiot/i, /fool/i, /incompetent/i
+    ],
+    'Straw Man': [
+      /no one.*saying/i, /nobody.*arguing/i,
+      /that's not.*what.*said/i, /misrepresent/i
+    ],
+    'False Dilemma': [
+      /either.*or/i, /black and white/i, 
+      /only two options/i, /only two choices/i
+    ],
+    'Appeal to Authority': [
+      /expert.*says/i, /according to.*authority/i,
+      /scientist.*believe/i, /doctors.*agree/i
+    ],
+    'Slippery Slope': [
+      /lead to/i, /next thing/i, /eventually/i,
+      /first step/i, /domino effect/i
+    ],
+    'Post Hoc': [
+      /because.*happened after/i, /followed by/i,
+      /since.*then/i, /after.*therefore/i
+    ],
+    'Circular Reasoning': [
+      /because it is/i, /true because.*true/i,
+      /works because.*works/i
+    ],
+    'Hasty Generalization': [
+      /all of them/i, /every single/i,
+      /always.*never/i, /everyone knows/i
+    ]
+  };
+  
+  for (const [fallacy, patterns] of Object.entries(fallacyPatterns)) {
+    if (patterns.some(pattern => pattern.test(lowerText))) {
+      detectedFallacies.push(fallacy);
+    }
+  }
+  
+  return detectedFallacies;
+};
+
+const identifyKnowledgeGaps = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  
+  const knowledgeGapKeywords = [
+    'cure for cancer', 
+    'consciousness',
+    'dark matter',
+    'quantum gravity',
+    'brain',
+    'next pandemic',
+    'predict stock market',
+    'artificial general intelligence',
+    'origin of life',
+    'alien life',
+    'cause of autism',
+    'long covid',
+    'nutrition',
+    'black holes'
+  ];
+  
+  const uncertaintyPhrases = [
+    'not fully understood',
+    'still researching',
+    'no scientific consensus',
+    'scientists disagree',
+    'emerging research',
+    'preliminary findings',
+    'ongoing debate',
+    'limited evidence',
+    'inconclusive'
+  ];
+  
+  const hasGapTopic = knowledgeGapKeywords.some(keyword => lowerText.includes(keyword));
+  
+  const hasUncertaintyPhrase = uncertaintyPhrases.some(phrase => lowerText.includes(phrase));
+  
+  const absoluteClaimAboutUncertain = knowledgeGapKeywords.some(keyword => lowerText.includes(keyword)) && 
+    (lowerText.includes('definitely') || 
+     lowerText.includes('absolutely') || 
+     lowerText.includes('without doubt') || 
+     lowerText.includes('proven fact'));
+  
+  return hasGapTopic || hasUncertaintyPhrase || absoluteClaimAboutUncertain;
+};
+
+const generateConfidenceScore = (verdict: 'true' | 'false' | 'unverified'): number => {
+  if (verdict === 'unverified') {
+    return Math.floor(Math.random() * 30) + 20;
+  } else if (verdict === 'true') {
+    return Math.floor(Math.random() * 20) + 75;
+  } else {
+    return Math.floor(Math.random() * 25) + 70;
+  }
 };

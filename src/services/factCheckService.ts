@@ -29,7 +29,8 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
         claimId: claim.id,
         verdict: myth.verdict as 'true' | 'false' | 'unverified',
         source: myth.source,
-        explanation: myth.explanation
+        explanation: myth.explanation,
+        confidenceScore: myth.verdict === 'unverified' ? 50 : 90 // High confidence for database entries
       };
     }
   }
@@ -40,6 +41,7 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
 // Gemini AI-powered fact checking function
 const geminiFactCheck = async (claim: Claim) => {
   const claimText = claim.text;
+  const topic = claim.topic || 'unknown';
   
   try {
     console.log("Gemini AI analyzing claim:", claimText);
@@ -52,30 +54,34 @@ const geminiFactCheck = async (claim: Claim) => {
       return fallbackFactCheck(claim);
     }
     
-    // Prepare the prompt for Gemini
+    // Prepare the prompt for Gemini - enhanced with more details
     const prompt = `
-      Act as a professional fact-checker. Analyze this claim:
+      Act as a professional fact-checker with expertise in ${topic}. Analyze this claim:
       
       "${claimText}"
       
-      Is this claim true, false, or cannot be verified with certainty?
-      
       For your response, provide:
-      1. A verdict: ONLY "true", "false", or "unverified"
+      1. Verdict: ONLY "true", "false", or "unverified"
       2. Explanation: Brief factual explanation supporting your verdict (2-3 sentences)
       3. Source: Relevant source or reference for the information
+      4. Confidence: A number from 0-100 indicating your confidence level
+      5. Knowledge Gaps: Mention any areas where scientific consensus is limited
+      6. Alternative Perspective: A brief alternative viewpoint, if relevant
       
       Format your response as JSON:
       {
         "verdict": "true/false/unverified",
         "explanation": "Your explanation here",
-        "source": "Your source here"
+        "source": "Your source here",
+        "confidence": number,
+        "knowledgeGaps": "Areas of limited consensus or knowledge here",
+        "alternativePerspective": "Alternative perspective here"
       }
       
       Focus on factual accuracy and reliability.
     `;
     
-    // Make request to Gemini API - Updated to use gemini-2.0-flash model
+    // Make request to Gemini API
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
       method: "POST",
       headers: {
@@ -117,7 +123,14 @@ const geminiFactCheck = async (claim: Claim) => {
     }
     
     // Try to parse the JSON response
-    let parsedResponse: { verdict: string; explanation: string; source: string };
+    let parsedResponse: { 
+      verdict: string; 
+      explanation: string; 
+      source: string;
+      confidence?: number;
+      knowledgeGaps?: string;
+      alternativePerspective?: string;
+    };
     
     try {
       // Extract JSON from the text (it might be wrapped in code blocks or have extra text)
@@ -156,11 +169,17 @@ const geminiFactCheck = async (claim: Claim) => {
       normalizedVerdict = 'unverified';
     }
     
+    // Create alternative perspectives array if provided
+    const alternativePerspectives = parsedResponse.alternativePerspective ? 
+      [parsedResponse.alternativePerspective] : undefined;
+    
     return {
       claimId: claim.id,
       verdict: normalizedVerdict,
       source: parsedResponse.source || "Google Gemini 2.0 Flash",
-      explanation: parsedResponse.explanation || "This claim has been analyzed by AI."
+      explanation: parsedResponse.explanation || "This claim has been analyzed by AI.",
+      confidenceScore: parsedResponse.confidence || generateConfidenceScore(normalizedVerdict),
+      alternativePerspectives
     };
     
   } catch (error) {
@@ -187,7 +206,8 @@ const fallbackFactCheck = async (claim: Claim) => {
       claimId: claim.id,
       verdict: 'false' as const,
       source: "Fallback fact checker",
-      explanation: "This claim contradicts scientific consensus. (AI service unavailable, using fallback)"
+      explanation: "This claim contradicts scientific consensus. (AI service unavailable, using fallback)",
+      confidenceScore: 85
     };
   }
   
@@ -202,7 +222,8 @@ const fallbackFactCheck = async (claim: Claim) => {
       claimId: claim.id,
       verdict: 'true' as const,
       source: "Fallback fact checker",
-      explanation: "This claim is supported by scientific consensus. (AI service unavailable, using fallback)"
+      explanation: "This claim is supported by scientific consensus. (AI service unavailable, using fallback)",
+      confidenceScore: 90
     };
   }
   
@@ -210,6 +231,18 @@ const fallbackFactCheck = async (claim: Claim) => {
     claimId: claim.id,
     verdict: 'unverified' as const,
     source: "Fallback fact checker",
-    explanation: "Unable to verify this claim. (AI service unavailable, using fallback)"
+    explanation: "Unable to verify this claim. (AI service unavailable, using fallback)",
+    confidenceScore: 40
   };
+};
+
+// Helper function to generate confidence scores when not provided by the API
+const generateConfidenceScore = (verdict: 'true' | 'false' | 'unverified'): number => {
+  if (verdict === 'unverified') {
+    return Math.floor(Math.random() * 30) + 20; // 20-50%
+  } else if (verdict === 'true') {
+    return Math.floor(Math.random() * 20) + 75; // 75-95%
+  } else {
+    return Math.floor(Math.random() * 25) + 70; // 70-95%
+  }
 };

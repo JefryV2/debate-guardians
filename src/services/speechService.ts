@@ -1,7 +1,17 @@
+
 import { TranscriptEntry } from "@/context/DebateContext";
 
 // Emotion types for voice analysis
 export type EmotionType = 'neutral' | 'angry' | 'happy' | 'sad' | 'frustrated' | 'excited' | 'uncertain';
+
+// Words in common logical fallacies that might indicate problematic arguments
+const fallacyKeywords = [
+  'everyone knows', 'clearly', 'obviously', 'always', 'never',
+  'expert said', 'studies show', 'research proves',
+  'stupid', 'idiot', 'ignorant', 'ridiculous',
+  'slippery slope', 'black and white', 'either or',
+  'tradition', 'natural', 'appeal to', 'authority'
+];
 
 // Use the Web Speech API for real speech recognition
 export const startSpeechRecognition = (
@@ -32,6 +42,11 @@ export const startSpeechRecognition = (
   let microphone: MediaStreamAudioSourceNode | null = null;
   let emotionAnalysisInterval: number | null = null;
   
+  // For speech rate analysis
+  let speechStartTime: number | null = null;
+  let wordCount = 0;
+  let speakingTooFast = false;
+  
   recognition.onstart = () => {
     console.log("Speech recognition started");
     
@@ -39,18 +54,47 @@ export const startSpeechRecognition = (
     if (onEmotionDetected) {
       setupEmotionDetection(onEmotionDetected);
     }
+    
+    // Reset speech rate tracking
+    speechStartTime = null;
+    wordCount = 0;
+    speakingTooFast = false;
   };
   
   recognition.onresult = (event: any) => {
     interimTranscript = '';
     
+    // Track speech start time for rate calculation
+    if (speechStartTime === null) {
+      speechStartTime = performance.now();
+    }
+    
     // Collect the interim transcript
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       if (event.results[i].isFinal) {
         finalTranscript = event.results[i][0].transcript;
+        
+        // Calculate speaking rate
+        const currentWords = finalTranscript.trim().split(/\s+/).length;
+        wordCount += currentWords;
+        
+        const elapsedTimeInSeconds = (performance.now() - (speechStartTime || 0)) / 1000;
+        const wordsPerMinute = Math.round((wordCount / elapsedTimeInSeconds) * 60);
+        
+        // Check if speaking too fast
+        if (wordsPerMinute > 180 && !speakingTooFast) {
+          speakingTooFast = true;
+          console.log("Speaking too fast detected:", wordsPerMinute, "WPM");
+        }
+        
         // Process the final transcript
         processFinalTranscript(finalTranscript, speakerId, onTranscript);
         finalTranscript = ''; // Reset for next statement
+        
+        // Reset for next speech segment
+        speechStartTime = performance.now();
+        wordCount = 0;
+        speakingTooFast = false;
       } else {
         interimTranscript += event.results[i][0].transcript;
       }
