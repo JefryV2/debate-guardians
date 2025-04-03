@@ -71,13 +71,18 @@ const TranscriptEntryComponent = ({ entry, speakerColor, speakerName, onMarkAsCl
         {text}
       </div>
       
-      {/* Manual claim highlight button - only show if not already a claim */}
+      {/* Manual claim highlight button - make it more visible */}
       {!isClaim && (
         <Button 
           variant="outline" 
           size="sm" 
-          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-xs h-7"
-          onClick={onMarkAsClaim}
+          className="absolute right-2 bottom-2 opacity-70 group-hover:opacity-100 transition-opacity bg-white text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={() => {
+            onMarkAsClaim();
+            toast.success("Entry marked as claim", {
+              description: "This statement will now be fact-checked"
+            });
+          }}
         >
           <Flag className="h-3 w-3 mr-1" />
           Mark as Claim
@@ -119,7 +124,8 @@ const TranscriptDisplay = () => {
             <Mic className="h-5 w-5 text-slate-600" />
           </div>
           Live Transcript
-          <div className="text-xs text-slate-500 font-normal ml-auto">
+          <div className="text-xs text-slate-500 font-normal ml-auto flex items-center">
+            <Flag className="h-3 w-3 mr-1 text-amber-500" />
             Hover over entries to mark claims manually
           </div>
         </CardTitle>
@@ -147,6 +153,13 @@ const TranscriptDisplay = () => {
                 </svg>
                 <p className="text-lg font-medium">No transcript yet</p>
                 <p className="text-sm mt-1">Click "Start Listening" and begin speaking</p>
+                <div className="mt-4 text-xs flex flex-col items-center gap-2 p-3 border border-dashed border-slate-300 rounded-md bg-slate-50 max-w-xs">
+                  <div className="flex items-center gap-1">
+                    <Flag className="h-3 w-3 text-amber-500" /> 
+                    <span className="font-medium">New Feature:</span> 
+                  </div>
+                  <span>Manually mark entries as claims with the flag button when you hover over them</span>
+                </div>
               </div>
             ) : (
               transcript.map(entry => {
