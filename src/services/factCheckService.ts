@@ -2,7 +2,7 @@
 import { Claim } from "@/context/DebateContext";
 import { commonMyths } from "@/data/commonMyths";
 
-// Function to check facts using AI (Gemini API integration)
+// Expanded service to check facts using AI (Gemini API integration)
 export const checkFactAgainstDatabase = async (claim: Claim) => {
   console.log("Checking fact:", claim.text);
   
@@ -30,7 +30,9 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
         verdict: myth.verdict as 'true' | 'false' | 'unverified',
         source: myth.source,
         explanation: myth.explanation,
-        confidenceScore: myth.verdict === 'unverified' ? 50 : 90 // High confidence for database entries
+        confidenceScore: myth.verdict === 'unverified' ? 50 : 90, // High confidence for database entries
+        logicalFallacies: detectLogicalFallacies(claim.text),
+        debunkedStudies: detectDebunkedStudies(claim.text)
       };
     }
   }
@@ -54,7 +56,7 @@ const geminiFactCheck = async (claim: Claim) => {
       return fallbackFactCheck(claim);
     }
     
-    // Prepare the prompt for Gemini - enhanced with more details
+    // Enhanced prompt for Gemini - now includes research validity analysis
     const prompt = `
       Act as a professional fact-checker with expertise in ${topic}. Analyze this claim:
       
@@ -67,6 +69,8 @@ const geminiFactCheck = async (claim: Claim) => {
       4. Confidence: A number from 0-100 indicating your confidence level
       5. Knowledge Gaps: Mention any areas where scientific consensus is limited
       6. Alternative Perspective: A brief alternative viewpoint, if relevant
+      7. Study Validity: If a specific study is mentioned, analyze if it has been debunked, retracted, or criticized by the scientific community
+      8. Logical Fallacies: Identify any logical fallacies in the claim (e.g., correlation-causation errors, appeal to authority, cherry picking)
       
       Format your response as JSON:
       {
@@ -75,10 +79,12 @@ const geminiFactCheck = async (claim: Claim) => {
         "source": "Your source here",
         "confidence": number,
         "knowledgeGaps": "Areas of limited consensus or knowledge here",
-        "alternativePerspective": "Alternative perspective here"
+        "alternativePerspective": "Alternative perspective here",
+        "debunkedStudies": "Information about study validity if applicable",
+        "logicalFallacies": ["List any detected fallacies here"]
       }
       
-      Focus on factual accuracy and reliability.
+      Focus on factual accuracy, research validity, and logical reasoning.
     `;
     
     // Make request to Gemini API
@@ -130,6 +136,8 @@ const geminiFactCheck = async (claim: Claim) => {
       confidence?: number;
       knowledgeGaps?: string;
       alternativePerspective?: string;
+      debunkedStudies?: string;
+      logicalFallacies?: string[];
     };
     
     try {
@@ -173,13 +181,21 @@ const geminiFactCheck = async (claim: Claim) => {
     const alternativePerspectives = parsedResponse.alternativePerspective ? 
       [parsedResponse.alternativePerspective] : undefined;
     
+    // Fallback to local detection if Gemini didn't identify logical fallacies
+    const logicalFallacies = parsedResponse.logicalFallacies || detectLogicalFallacies(claim.text);
+    
+    // Ensure debunked studies are identified
+    const debunkedStudies = parsedResponse.debunkedStudies || detectDebunkedStudies(claim.text);
+    
     return {
       claimId: claim.id,
       verdict: normalizedVerdict,
       source: parsedResponse.source || "Google Gemini 2.0 Flash",
       explanation: parsedResponse.explanation || "This claim has been analyzed by AI.",
       confidenceScore: parsedResponse.confidence || generateConfidenceScore(normalizedVerdict),
-      alternativePerspectives
+      alternativePerspectives,
+      logicalFallacies: logicalFallacies.length > 0 ? logicalFallacies : undefined,
+      debunkedStudies: debunkedStudies ? debunkedStudies : undefined
     };
     
   } catch (error) {
@@ -207,7 +223,9 @@ const fallbackFactCheck = async (claim: Claim) => {
       verdict: 'false' as const,
       source: "Fallback fact checker",
       explanation: "This claim contradicts scientific consensus. (AI service unavailable, using fallback)",
-      confidenceScore: 85
+      confidenceScore: 85,
+      logicalFallacies: detectLogicalFallacies(claim.text),
+      debunkedStudies: detectDebunkedStudies(claim.text)
     };
   }
   
@@ -223,7 +241,9 @@ const fallbackFactCheck = async (claim: Claim) => {
       verdict: 'true' as const,
       source: "Fallback fact checker",
       explanation: "This claim is supported by scientific consensus. (AI service unavailable, using fallback)",
-      confidenceScore: 90
+      confidenceScore: 90,
+      logicalFallacies: detectLogicalFallacies(claim.text),
+      debunkedStudies: detectDebunkedStudies(claim.text)
     };
   }
   
@@ -232,8 +252,173 @@ const fallbackFactCheck = async (claim: Claim) => {
     verdict: 'unverified' as const,
     source: "Fallback fact checker",
     explanation: "Unable to verify this claim. (AI service unavailable, using fallback)",
-    confidenceScore: 40
+    confidenceScore: 40,
+    logicalFallacies: detectLogicalFallacies(claim.text),
+    debunkedStudies: detectDebunkedStudies(claim.text)
   };
+};
+
+// Enhanced logical fallacy detection
+const detectLogicalFallacies = (text: string): string[] => {
+  const lowerText = text.toLowerCase();
+  const detectedFallacies: string[] = [];
+  
+  const fallacyPatterns: Record<string, RegExp[]> = {
+    'Ad Hominem': [
+      /attack.*person/i, /character.*not.*argument/i,
+      /stupid/i, /idiot/i, /fool/i, /incompetent/i
+    ],
+    'Straw Man': [
+      /no one.*saying/i, /nobody.*arguing/i,
+      /that's not.*what.*said/i, /misrepresent/i
+    ],
+    'False Dilemma': [
+      /either.*or/i, /black and white/i, 
+      /only two options/i, /only two choices/i
+    ],
+    'Appeal to Authority': [
+      /expert.*says/i, /according to.*authority/i,
+      /scientist.*believe/i, /doctors.*agree/i
+    ],
+    'Slippery Slope': [
+      /lead to/i, /next thing/i, /eventually/i,
+      /first step/i, /domino effect/i
+    ],
+    'Post Hoc': [
+      /because.*happened after/i, /followed by/i,
+      /since.*then/i, /after.*therefore/i
+    ],
+    'Circular Reasoning': [
+      /because it is/i, /true because.*true/i,
+      /works because.*works/i
+    ],
+    'Hasty Generalization': [
+      /all of them/i, /every single/i,
+      /always.*never/i, /everyone knows/i
+    ],
+    'Correlation-Causation Fallacy': [
+      /correlation/i, /correlate/i, /causation/i, /cause/i, 
+      /because.*increased/i, /due to.*rise in/i,
+      /leads to/i, /resulted from/i
+    ],
+    'Cherry Picking': [
+      /one study/i, /single study/i, /one paper/i, /this study/i,
+      /ignoring.*evidence/i, /despite other/i
+    ],
+    'Appeal to Nature': [
+      /natural/i, /unnatural/i, /as nature intended/i,
+      /the way things should be/i, /organic/i
+    ],
+    'Appeal to Emotion': [
+      /think of the children/i, /imagine if/i,
+      /don't you care about/i, /how would you feel if/i
+    ],
+    'Bandwagon Fallacy': [
+      /everyone is doing it/i, /everyone knows/i, 
+      /popular opinion/i, /most people/i
+    ],
+    'False Equivalence': [
+      /just like/i, /same as/i, /equivalent to/i,
+      /no different than/i, /equally/i
+    ]
+  };
+  
+  // Check each fallacy pattern
+  for (const [fallacy, patterns] of Object.entries(fallacyPatterns)) {
+    if (patterns.some(pattern => pattern.test(lowerText))) {
+      // Special handling for correlation-causation
+      if (fallacy === 'Correlation-Causation Fallacy') {
+        // Only add if text suggests causation from correlation
+        if (
+          (lowerText.includes('correlation') && lowerText.includes('cause')) ||
+          (lowerText.includes('because') && 
+           (lowerText.includes('increased') || lowerText.includes('decreased'))) ||
+          (lowerText.match(/([a-z]+)\s+causes\s+([a-z]+)/i) !== null)
+        ) {
+          detectedFallacies.push(fallacy);
+        }
+      } else {
+        detectedFallacies.push(fallacy);
+      }
+    }
+  }
+  
+  return detectedFallacies;
+};
+
+// New function to detect debunked or problematic studies
+const detectDebunkedStudies = (text: string): string | undefined => {
+  const lowerText = text.toLowerCase();
+  
+  // Database of known debunked/retracted studies
+  const debunkedStudies = [
+    {
+      keywords: ['wakefield', 'mmr', 'autism', 'vaccine'],
+      explanation: "The 1998 Andrew Wakefield study claiming a link between MMR vaccines and autism was retracted due to ethical violations and methodological problems. Multiple subsequent studies found no link between vaccines and autism."
+    },
+    {
+      keywords: ['stanford prison experiment'],
+      explanation: "The Stanford Prison Experiment has been criticized for experimenter bias, lack of scientific controls, and coaching of participants. Many of its conclusions about human behavior are now considered unreliable."
+    },
+    {
+      keywords: ['ivermectin', 'covid', 'elgazzar'],
+      explanation: "The Elgazzar study on ivermectin for COVID-19 was withdrawn due to ethical concerns and suspected data manipulation. Subsequent meta-analyses excluding this study showed no significant benefit."
+    },
+    {
+      keywords: ['bem', 'precognition', 'feeling the future'],
+      explanation: "Daryl Bem's 2011 study on precognition ('Feeling the Future') failed multiple replication attempts and is considered an example of p-hacking and methodological problems in psychological research."
+    },
+    {
+      keywords: ['power pose', 'cuddy'],
+      explanation: "The 'power pose' study by Amy Cuddy has failed replication attempts. The original finding that posture affects hormone levels and behavior is now considered overstated."
+    },
+    {
+      keywords: ['reinhart', 'rogoff', 'growth', 'debt'],
+      explanation: "The Reinhart-Rogoff study claiming high debt causes low economic growth contained spreadsheet errors and methodological issues. Reanalysis showed the relationship was much weaker than claimed."
+    },
+    {
+      keywords: ['hydroxychloroquine', 'covid', 'raoult'],
+      explanation: "Early studies by Didier Raoult on hydroxychloroquine for COVID-19 had serious methodological flaws. Larger, controlled studies found no benefit and potential harms."
+    },
+    {
+      keywords: ['diets', 'saturated fat', 'ancel keys', 'seven countries'],
+      explanation: "Ancel Keys' 'Seven Countries Study' on saturated fat has been criticized for cherry-picking countries that fit the hypothesis. Modern nutritional science shows a more complex relationship between fats and health."
+    },
+    {
+      keywords: ['vaccines', 'mercury', 'thimerosal', 'autism'],
+      explanation: "Studies claiming thimerosal in vaccines causes autism have been debunked. Multiple large epidemiological studies found no link, and thimerosal has been removed from childhood vaccines since 2001 with no effect on autism rates."
+    },
+    {
+      keywords: ['gmo', 'séralini', 'rats', 'cancer'],
+      explanation: "The Séralini study claiming GMOs caused tumors in rats was retracted due to small sample sizes and inappropriate statistical methods. The European Food Safety Authority and other organizations found numerous flaws in the research."
+    }
+  ];
+  
+  // Check if text mentions any known debunked studies
+  for (const study of debunkedStudies) {
+    // If text contains multiple keywords from a debunked study
+    const matchCount = study.keywords.filter(keyword => lowerText.includes(keyword)).length;
+    if (matchCount >= 2) { // Text must match at least 2 keywords to reduce false positives
+      return study.explanation;
+    }
+  }
+  
+  // Check for general red flags about studies
+  if (
+    (lowerText.includes('study') || lowerText.includes('research') || lowerText.includes('paper')) &&
+    (lowerText.includes('proves') || lowerText.includes('proven') || lowerText.includes('conclusive'))
+  ) {
+    return "This claim references a study with absolute certainty. Scientific research rarely 'proves' anything conclusively, but rather provides evidence that supports or contradicts hypotheses.";
+  }
+  
+  if (
+    (lowerText.includes('one study') || lowerText.includes('single study') || lowerText.includes('a study shows')) &&
+    !lowerText.includes('studies show')
+  ) {
+    return "This claim relies on a single study. Scientific consensus typically requires multiple studies with consistent results across different research teams.";
+  }
+  
+  return undefined;
 };
 
 // Helper function to generate confidence scores when not provided by the API

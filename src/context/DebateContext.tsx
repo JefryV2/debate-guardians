@@ -21,6 +21,8 @@ export interface FactCheck {
   explanation: string;
   confidenceScore?: number; // 0-100
   alternativePerspectives?: string[];
+  logicalFallacies?: string[]; // Added for advanced fallacy detection
+  debunkedStudies?: string; // Added for study validity assessment
 }
 
 export interface Speaker {

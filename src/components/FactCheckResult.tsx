@@ -1,8 +1,7 @@
-
 import { useDebate, FactCheck } from "@/context/DebateContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, XCircle, AlertCircle, Gauge, BookOpen, LightbulbOff } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Gauge, BookOpen, LightbulbOff, AlertTriangle, FileWarning } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,7 @@ const FactCheckItem = ({
   fallacies,
   knowledgeGapIdentified
 }: FactCheckItemProps) => {
-  const { verdict, source, explanation, confidenceScore } = factCheck;
+  const { verdict, source, explanation, confidenceScore, logicalFallacies, debunkedStudies } = factCheck;
   
   const getVerdictIcon = () => {
     switch (verdict) {
@@ -98,6 +97,36 @@ const FactCheckItem = ({
                     {fallacy}
                   </Badge>
                 ))}
+              </div>
+            </div>
+          )}
+          
+          {/* AI-detected logical fallacies */}
+          {logicalFallacies && logicalFallacies.length > 0 && (
+            <div className="mt-2 text-sm">
+              <div className="flex items-center gap-1 text-amber-600 font-medium">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Reasoning Issues Detected:</span>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {logicalFallacies.map((fallacy, index) => (
+                  <Badge key={index} variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200">
+                    {fallacy}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Debunked studies information */}
+          {debunkedStudies && (
+            <div className="mt-2 text-sm">
+              <div className="flex items-center gap-1 text-red-600 font-medium">
+                <FileWarning className="h-4 w-4" />
+                <span>Research Validity Issue:</span>
+              </div>
+              <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded text-red-700">
+                {debunkedStudies}
               </div>
             </div>
           )}
