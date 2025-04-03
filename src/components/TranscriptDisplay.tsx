@@ -4,16 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Mic } from "lucide-react";
+import { AlertCircle, Mic, Flag } from "lucide-react";
 import { EmotionType } from "@/services/speechService";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 
 interface TranscriptEntryProps {
   entry: TranscriptEntry;
   speakerColor: string;
   speakerName: string;
+  onMarkAsClaim: () => void;
 }
 
-const TranscriptEntryComponent = ({ entry, speakerColor, speakerName }: TranscriptEntryProps) => {
+const TranscriptEntryComponent = ({ entry, speakerColor, speakerName, onMarkAsClaim }: TranscriptEntryProps) => {
   const { text, isClaim, timestamp, emotion } = entry;
   
   const getEmotionBadge = () => {
@@ -40,10 +43,10 @@ const TranscriptEntryComponent = ({ entry, speakerColor, speakerName }: Transcri
   
   return (
     <div className={cn(
-      "mb-3 p-3 rounded-md transition-all",
+      "mb-3 p-3 rounded-md transition-all group relative",
       isClaim 
         ? "border border-yellow-300 bg-yellow-50 shadow-sm" 
-        : "bg-white border border-gray-100 shadow-sm"
+        : "bg-white border border-gray-100 shadow-sm hover:border-gray-200"
     )}>
       <div className="flex items-center justify-between text-sm text-gray-500 mb-1.5">
         <span className="font-medium flex items-center gap-1.5">
@@ -67,12 +70,25 @@ const TranscriptEntryComponent = ({ entry, speakerColor, speakerName }: Transcri
       )}>
         {text}
       </div>
+      
+      {/* Manual claim highlight button - only show if not already a claim */}
+      {!isClaim && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-xs h-7"
+          onClick={onMarkAsClaim}
+        >
+          <Flag className="h-3 w-3 mr-1" />
+          Mark as Claim
+        </Button>
+      )}
     </div>
   );
 };
 
 const TranscriptDisplay = () => {
-  const { transcript, speakers } = useDebate();
+  const { transcript, speakers, markEntryAsClaim } = useDebate();
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Auto-scroll to bottom when new entries are added
@@ -90,6 +106,10 @@ const TranscriptDisplay = () => {
       name: speaker?.name || "Unknown Speaker"
     };
   };
+
+  const handleMarkAsClaim = (entryId: string) => {
+    markEntryAsClaim(entryId);
+  };
   
   return (
     <Card className="h-full border-0 shadow-md bg-white/70 backdrop-blur-sm">
@@ -99,6 +119,9 @@ const TranscriptDisplay = () => {
             <Mic className="h-5 w-5 text-slate-600" />
           </div>
           Live Transcript
+          <div className="text-xs text-slate-500 font-normal ml-auto">
+            Hover over entries to mark claims manually
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -134,6 +157,7 @@ const TranscriptDisplay = () => {
                     entry={entry} 
                     speakerColor={color}
                     speakerName={name}
+                    onMarkAsClaim={() => handleMarkAsClaim(entry.id)}
                   />
                 );
               })

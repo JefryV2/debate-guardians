@@ -1,3 +1,4 @@
+
 import { useDebate } from "@/context/DebateContext";
 import SpeakerCard from "./SpeakerCard";
 import SpeakerStats from "./SpeakerStats";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, 
   Meh, Info, Shield, UserPlus, UserMinus, Users, Lightbulb, 
-  BarChart2, FileText
+  BarChart2, FileText, GitCompare, Flag
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
@@ -37,7 +38,9 @@ const DebateRoom = () => {
     debugMode,
     setDebugMode,
     addSpeaker,
-    removeSpeaker
+    removeSpeaker,
+    continuousAnalysisMode,
+    setContinuousAnalysisMode
   } = useDebate();
   
   const [isEditingSpeakers, setIsEditingSpeakers] = useState(false);
@@ -239,6 +242,17 @@ const DebateRoom = () => {
                   <PopoverContent className="w-60">
                     <div className="space-y-3">
                       <h4 className="font-medium text-sm">Analysis Features</h4>
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="continuous-analysis" 
+                          checked={continuousAnalysisMode}
+                          onCheckedChange={setContinuousAnalysisMode}
+                        />
+                        <Label htmlFor="continuous-analysis" className="text-sm flex items-center gap-1">
+                          <GitCompare className="h-3 w-3" />
+                          Continuous Analysis
+                        </Label>
+                      </div>
                       <div className="flex items-center space-x-2">
                         <Switch 
                           id="fallacy-detection" 
@@ -477,12 +491,15 @@ const DebateRoom = () => {
                     <li>Select a speaker by clicking their card</li>
                     <li>Click "Start Listening" and begin speaking</li>
                     <li>Make claims to see them fact-checked in real-time</li>
+                    <li><strong>NEW:</strong> Manually mark entries as claims with the flag button</li>
                   </ol>
                 </div>
                 
                 <div>
                   <p className="mb-2 font-medium text-slate-900">Advanced Features:</p>
                   <ul className="list-disc pl-5 space-y-1">
+                    <li><strong>NEW:</strong> Continuous analysis mode for multi-sentence claims</li>
+                    <li><strong>NEW:</strong> Manual claim highlighting for missed claims</li>
                     <li>Logical fallacy detection with automatic warnings</li>
                     <li>Speech rate monitoring to detect fast talking</li>
                     <li>Topic classification for claims</li>

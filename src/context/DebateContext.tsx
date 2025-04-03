@@ -11,6 +11,7 @@ export interface Claim {
   fallacies?: string[];
   knowledgeGapIdentified?: boolean;
   speakingRate?: number; // Words per minute
+  isManuallyHighlighted?: boolean; // Added for manual highlighting
 }
 
 export interface FactCheck {
@@ -70,6 +71,9 @@ interface DebateContextType {
   setDebugMode: (mode: boolean) => void;
   addSpeaker: () => void;
   removeSpeaker: (id: string) => void;
+  markEntryAsClaim: (entryId: string) => void;
+  continuousAnalysisMode: boolean;
+  setContinuousAnalysisMode: (mode: boolean) => void;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -123,6 +127,7 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
   const [factChecks, setFactChecks] = useState<FactCheck[]>([]);
   const [currentSpeakerId, setCurrentSpeakerId] = useState<string>('1');
   const [debugMode, setDebugMode] = useState<boolean>(false);
+  const [continuousAnalysisMode, setContinuousAnalysisMode] = useState<boolean>(true);
 
   const addSpeaker = () => {
     if (speakers.length >= 8) {
@@ -189,53 +194,121 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
     
     setTranscript(prev => [...prev, newEntry]);
 
-    if (entry.isClaim) {
-      const topic = classifyTopic(entry.text);
-      const knowledgeGapIdentified = identifyKnowledgeGaps(entry.text);
+    if (continuousAnalysisMode && !entry.isClaim) {
+      const recentEntries = getRecentEntries(entry.speakerId);
       
-      const newClaim = {
-        id: id,
-        text: entry.text,
-        timestamp: entry.timestamp.toISOString(),
-        speakerId: entry.speakerId,
-        topic,
-        fallacies: fallacies.length > 0 ? fallacies : undefined,
-        knowledgeGapIdentified,
-        speakingRate
-      };
+      const combinedText = recentEntries.map(e => e.text).join(' ') + ' ' + entry.text;
       
-      setClaims(prev => [...prev, newClaim]);
+      const isCombinedClaim = classifyTopic(combinedText) !== undefined || 
+                               detectLogicalFallacies(combinedText).length > 0 ||
+                               identifyKnowledgeGaps(combinedText);
       
-      if (fallacies.length > 0) {
-        const speaker = speakers.find(s => s.id === entry.speakerId);
-        toast.warning(`Fallacy detected: ${fallacies[0]}`, {
-          description: `From ${speaker?.name || 'Speaker'}: "${entry.text.substring(0, 50)}..."`,
-          duration: 4000,
+      if (isCombinedClaim) {
+        createClaimFromEntry({
+          ...newEntry,
+          text: combinedText,
+          isClaim: true
         });
-      }
-      
-      if (speakingRate > 180) {
-        const speaker = speakers.find(s => s.id === entry.speakerId);
-        toast.info(`Fast speech detected`, {
-          description: `${speaker?.name || 'Speaker'} is speaking rapidly at ${Math.round(speakingRate)} words per minute`,
-          duration: 3000,
-        });
-      }
-      
-      if (knowledgeGapIdentified) {
-        toast.info(`Knowledge Gap Identified`, {
-          description: `This claim touches on an area with limited scientific consensus`,
-          duration: 4000,
-        });
-      }
-      
-      if (debugMode) {
-        toast.info(`Claim detected: ${entry.text.substring(0, 50)}...`, {
-          description: `From Speaker ${entry.speakerId}${topic ? ` | Topic: ${topic}` : ''}`,
-          duration: 3000,
-        });
+        
+        if (debugMode) {
+          toast.info(`Combined claim detected from recent entries`, {
+            description: `Analyzed ${recentEntries.length + 1} entries together`,
+            duration: 3000,
+          });
+        }
       }
     }
+
+    if (entry.isClaim) {
+      createClaimFromEntry(newEntry);
+    }
+  };
+
+  const createClaimFromEntry = (entry: TranscriptEntry) => {
+    const topic = classifyTopic(entry.text);
+    const knowledgeGapIdentified = identifyKnowledgeGaps(entry.text);
+    
+    const newClaim = {
+      id: entry.id,
+      text: entry.text,
+      timestamp: entry.timestamp.toISOString(),
+      speakerId: entry.speakerId,
+      topic,
+      fallacies: entry.fallacies,
+      knowledgeGapIdentified,
+      speakingRate: entry.speakingRate
+    };
+    
+    setClaims(prev => [...prev, newClaim]);
+    
+    if (entry.fallacies && entry.fallacies.length > 0) {
+      const speaker = speakers.find(s => s.id === entry.speakerId);
+      toast.warning(`Fallacy detected: ${entry.fallacies[0]}`, {
+        description: `From ${speaker?.name || 'Speaker'}: "${entry.text.substring(0, 50)}..."`,
+        duration: 4000,
+      });
+    }
+    
+    if (entry.speakingRate && entry.speakingRate > 180) {
+      const speaker = speakers.find(s => s.id === entry.speakerId);
+      toast.info(`Fast speech detected`, {
+        description: `${speaker?.name || 'Speaker'} is speaking rapidly at ${Math.round(entry.speakingRate)} words per minute`,
+        duration: 3000,
+      });
+    }
+    
+    if (knowledgeGapIdentified) {
+      toast.info(`Knowledge Gap Identified`, {
+        description: `This claim touches on an area with limited scientific consensus`,
+        duration: 4000,
+      });
+    }
+    
+    if (debugMode) {
+      toast.info(`Claim detected: ${entry.text.substring(0, 50)}...`, {
+        description: `From Speaker ${entry.speakerId}${topic ? ` | Topic: ${topic}` : ''}`,
+        duration: 3000,
+      });
+    }
+  };
+
+  const getRecentEntries = (speakerId: string, maxEntries: number = 3) => {
+    return transcript
+      .filter(entry => entry.speakerId === speakerId && !entry.isClaim)
+      .slice(-maxEntries);
+  };
+
+  const markEntryAsClaim = (entryId: string) => {
+    const entry = transcript.find(entry => entry.id === entryId);
+    
+    if (!entry) {
+      toast.error("Entry not found", {
+        description: "The selected entry could not be found in the transcript."
+      });
+      return;
+    }
+    
+    if (entry.isClaim) {
+      toast.info("Already marked as claim", {
+        description: "This entry is already marked as a claim."
+      });
+      return;
+    }
+    
+    setTranscript(prev => 
+      prev.map(item => 
+        item.id === entryId ? { ...item, isClaim: true } : item
+      )
+    );
+    
+    createClaimFromEntry({
+      ...entry,
+      isClaim: true
+    });
+    
+    toast.success("Entry marked as claim", {
+      description: "The selected entry has been marked as a claim and will be fact-checked."
+    });
   };
 
   const clearTranscript = () => {
@@ -347,7 +420,10 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
         debugMode,
         setDebugMode,
         addSpeaker,
-        removeSpeaker
+        removeSpeaker,
+        markEntryAsClaim,
+        continuousAnalysisMode,
+        setContinuousAnalysisMode
       }}
     >
       {children}
