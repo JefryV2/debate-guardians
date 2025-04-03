@@ -35,6 +35,9 @@ export const startSpeechRecognition = (
   
   let finalTranscript = '';
   let interimTranscript = '';
+  let lastTranscript = ''; // Track the previous transcript for context
+  let contextBuffer = []; // Store recent statements for multi-sentence context
+  let recognitionTimeout: number | null = null; // For handling pauses
   
   // For emotion analysis
   let audioContext: AudioContext | null = null;
@@ -61,6 +64,38 @@ export const startSpeechRecognition = (
     speakingTooFast = false;
   };
   
+  // Handle no speech errors by automatically restarting
+  recognition.onnomatch = () => {
+    console.log("No speech detected. Restarting recognition...");
+    try {
+      recognition.stop();
+      setTimeout(() => recognition.start(), 100);
+    } catch (e) {
+      console.error("Error restarting speech recognition:", e);
+    }
+  };
+  
+  // Buffer multi-sentence context
+  const addToContextBuffer = (text: string) => {
+    contextBuffer.push(text);
+    if (contextBuffer.length > 3) { // Keep last 3 statements for context
+      contextBuffer.shift();
+    }
+  };
+  
+  // Helps handle mid-sentence pauses by delaying processing
+  const scheduleTranscriptProcessing = (transcript: string) => {
+    if (recognitionTimeout) {
+      clearTimeout(recognitionTimeout);
+    }
+    
+    recognitionTimeout = window.setTimeout(() => {
+      const combinedContext = [...contextBuffer, transcript].join(' ');
+      processFinalTranscript(transcript, speakerId, onTranscript, combinedContext);
+      addToContextBuffer(transcript);
+    }, 1500); // Wait 1.5 seconds after speech ends to process
+  };
+  
   recognition.onresult = (event: any) => {
     interimTranscript = '';
     
@@ -69,32 +104,49 @@ export const startSpeechRecognition = (
       speechStartTime = performance.now();
     }
     
+    // Find the last final result index
+    let lastFinalIndex = -1;
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        lastFinalIndex = i;
+      }
+    }
+    
     // Collect the interim transcript
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       if (event.results[i].isFinal) {
-        finalTranscript = event.results[i][0].transcript;
-        
-        // Calculate speaking rate
-        const currentWords = finalTranscript.trim().split(/\s+/).length;
-        wordCount += currentWords;
-        
-        const elapsedTimeInSeconds = (performance.now() - (speechStartTime || 0)) / 1000;
-        const wordsPerMinute = Math.round((wordCount / elapsedTimeInSeconds) * 60);
-        
-        // Check if speaking too fast
-        if (wordsPerMinute > 180 && !speakingTooFast) {
-          speakingTooFast = true;
-          console.log("Speaking too fast detected:", wordsPerMinute, "WPM");
+        if (i === lastFinalIndex) {
+          // This is the last final result in this batch
+          finalTranscript = event.results[i][0].transcript;
+          
+          // Only process if the transcript has changed significantly
+          if (finalTranscript.trim() && 
+              levenshteinDistance(finalTranscript, lastTranscript) > finalTranscript.length * 0.3) {
+            
+            lastTranscript = finalTranscript;
+            
+            // Schedule processing with delay to catch pauses
+            scheduleTranscriptProcessing(finalTranscript);
+            
+            // Calculate speaking rate
+            const currentWords = finalTranscript.trim().split(/\s+/).length;
+            wordCount += currentWords;
+            
+            const elapsedTimeInSeconds = (performance.now() - (speechStartTime || 0)) / 1000;
+            const wordsPerMinute = Math.round((wordCount / elapsedTimeInSeconds) * 60);
+            
+            // Check if speaking too fast
+            if (wordsPerMinute > 180 && !speakingTooFast) {
+              speakingTooFast = true;
+              console.log("Speaking too fast detected:", wordsPerMinute, "WPM");
+            }
+            
+            // Reset for next speech segment
+            speechStartTime = performance.now();
+            wordCount = 0;
+            speakingTooFast = false;
+          }
         }
-        
-        // Process the final transcript
-        processFinalTranscript(finalTranscript, speakerId, onTranscript);
-        finalTranscript = ''; // Reset for next statement
-        
-        // Reset for next speech segment
-        speechStartTime = performance.now();
-        wordCount = 0;
-        speakingTooFast = false;
       } else {
         interimTranscript += event.results[i][0].transcript;
       }
@@ -103,8 +155,32 @@ export const startSpeechRecognition = (
   
   recognition.onerror = (event: any) => {
     console.error("Speech recognition error", event.error);
+    
+    // Handle common errors
+    if (event.error === 'not-allowed') {
+      onTranscript("Microphone access denied. Please enable microphone permissions.", false);
+    } else if (event.error === 'network') {
+      onTranscript("Network error occurred. Check your internet connection.", false);
+      // Try to restart after network error
+      setTimeout(() => {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error("Failed to restart after network error:", e);
+        }
+      }, 3000);
+    } else if (event.error === 'no-speech') {
+      // Don't show message, just restart
+      try {
+        recognition.stop();
+        setTimeout(() => recognition.start(), 100);
+      } catch (e) {
+        console.error("Error restarting after no-speech:", e);
+      }
+    }
   };
   
+  // Automatically restart if recognition ends unexpectedly
   recognition.onend = () => {
     console.log("Speech recognition ended");
     
@@ -159,11 +235,15 @@ export const startSpeechRecognition = (
     recognition.start();
   } catch (e) {
     console.error("Error starting speech recognition:", e);
+    onTranscript("Failed to start speech recognition. Please reload the page.", false);
   }
   
   // Return cleanup function
   return () => {
     try {
+      if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+      }
       recognition.stop();
       
       // Clean up emotion detection
@@ -188,18 +268,51 @@ export const startSpeechRecognition = (
 const processFinalTranscript = (
   text: string,
   speakerId: string,
-  onTranscript: (text: string, isClaim: boolean) => void
+  onTranscript: (text: string, isClaim: boolean) => void,
+  context: string = ""
 ) => {
   // Only process non-empty statements
   if (text.trim()) {
-    const isClaim = detectClaim(text);
+    const isClaim = detectClaim(text, context);
     onTranscript(text, isClaim);
   }
 };
 
-// Enhanced claim detection using more sophisticated patterns
-export const detectClaim = (text: string): boolean => {
+// Enhanced claim detection with context awareness and better heuristics
+export const detectClaim = (text: string, context: string = ""): boolean => {
   const lowerText = text.toLowerCase();
+  const lowerContext = context.toLowerCase();
+  
+  // Don't flag very short statements as claims
+  if (text.split(' ').length < 3) {
+    return false;
+  }
+  
+  // Check for question marks - questions are rarely claims
+  // But account for rhetorical questions that are actually claims
+  if (text.includes('?') && 
+      !lowerText.startsWith("isn't it true") && 
+      !lowerText.startsWith("don't you agree") &&
+      !lowerText.startsWith("wouldn't you say")) {
+    return false;
+  }
+  
+  // Skip obvious commands and greetings
+  if (
+    lowerText.startsWith("please ") ||
+    lowerText.startsWith("thank") ||
+    lowerText.startsWith("hello") ||
+    lowerText.startsWith("hi ") ||
+    lowerText.startsWith("hey ") ||
+    lowerText === "yes" ||
+    lowerText === "no" ||
+    lowerText === "ok" ||
+    lowerText === "okay" ||
+    lowerText === "sure" ||
+    lowerText === "right"
+  ) {
+    return false;
+  }
   
   // Improved categories of claim indicators with weighted importance
   const strongClaimIndicators = [
@@ -357,9 +470,69 @@ export const detectClaim = (text: string): boolean => {
     /underperforms/i
   ];
   
+  // Citation patterns that indicate claims
+  const citationPatterns = [
+    /published in/i,
+    /wrote in/i,
+    /cited in/i,
+    /journal of/i,
+    /paper by/i,
+    /conducted by/i,
+    /report from/i,
+    /article in/i
+  ];
+
+  // Look for negation patterns that might indicate sarcasm or counter-arguments
+  const negationPatterns = [
+    /not true/i,
+    /isn't real/i,
+    /doesn't exist/i,
+    /isn't actually/i,
+    /don't really/i
+  ];
+
+  // Check for negations and sarcasm (might not be actual claims)
+  if (negationPatterns.some(pattern => pattern.test(lowerText))) {
+    // Only consider as claim if there's a strong indicator or a specific topic
+    if (!strongClaimIndicators.some(indicator => lowerText.includes(indicator)) &&
+        !topicalKeywords.some(keyword => lowerText.includes(keyword))) {
+      return false;
+    }
+  }
+  
+  // Check for citations which strongly indicate claims
+  if (citationPatterns.some(pattern => pattern.test(lowerText))) {
+    return true;
+  }
+  
   // Check for strong claim indicators
   if (strongClaimIndicators.some(indicator => lowerText.includes(indicator))) {
     return true;
+  }
+  
+  // Check for context linking phrases that might indicate a multi-sentence claim
+  if (
+    lowerText.startsWith("this means") ||
+    lowerText.startsWith("that means") ||
+    lowerText.startsWith("this shows") ||
+    lowerText.startsWith("that shows") ||
+    lowerText.startsWith("which means") ||
+    lowerText.startsWith("therefore") ||
+    lowerText.startsWith("thus") ||
+    lowerText.startsWith("hence") ||
+    lowerText.startsWith("consequently") ||
+    lowerText.startsWith("as a result") ||
+    lowerText.startsWith("this is why") ||
+    lowerText.startsWith("this proves")
+  ) {
+    // Check if the context has a claim-like statement
+    if (
+      context.length > 0 &&
+      (topicalKeywords.some(keyword => lowerContext.includes(keyword)) ||
+      strongClaimIndicators.some(indicator => lowerContext.includes(indicator)))
+    ) {
+      return true;
+    }
   }
   
   // Check for medium claim indicators combined with topical keywords
@@ -430,14 +603,49 @@ export const detectClaim = (text: string): boolean => {
   }
   
   // Sentence length heuristic - longer sentences are more likely to be claims
-  // (combined with at least some content words)
+  // but only if they contain topic keywords to avoid false positives on long opinions
   if (lowerText.split(' ').length > 15 && 
       topicalKeywords.some(keyword => lowerText.includes(keyword))) {
-    return true;
+    // Check for opinion qualifiers that would make it not a claim
+    const opinionQualifiers = ["feel like", "my opinion", "i feel", "i personally", "i prefer", "i like"];
+    if (!opinionQualifiers.some(qualifier => lowerText.includes(qualifier))) {
+      return true;
+    }
   }
   
   // Not detected as a claim
   return false;
+};
+
+// Utility function to calculate text similarity (Levenshtein distance)
+// This helps avoid duplicate processing of similar transcripts
+const levenshteinDistance = (a: string, b: string): number => {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const matrix = [];
+
+  // Initialize matrix
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Fill in matrix
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,      // deletion
+        matrix[i][j - 1] + 1,      // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+
+  return matrix[b.length][a.length];
 };
 
 // Analyze audio data to detect emotion
