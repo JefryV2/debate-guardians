@@ -26,6 +26,18 @@ export interface FactCheck {
   debunkedStudies?: string; // Added for study validity assessment
 }
 
+export interface ArgumentPatterns {
+  citesStudies: number; // Frequency of citing studies/research
+  usesDebunkedSources: number; // Frequency of using debunked sources
+  fallacyFrequency: Record<string, number>; // Frequency of each fallacy type
+  factAccuracyByTopic: Record<string, number>; // Accuracy rate by topic
+  emotionalAppealFrequency: number; // How often they appeal to emotion
+  overallBias?: 'factual' | 'political' | 'emotional' | 'scientific' | 'sensationalist' | 'neutral'; // Detected bias in argumentation
+  preferredTopics: string[]; // Topics they speak most about
+  commonSources?: string[]; // Sources they frequently cite
+  improvementTrend?: boolean; // Whether accuracy is improving over time
+}
+
 export interface Speaker {
   id: string;
   name: string;
@@ -41,6 +53,7 @@ export interface Speaker {
     accuracyScore: number;
   }[];
   topicExpertise?: Record<string, number>; // Topic name to accuracy score
+  argumentPatterns?: ArgumentPatterns; // New field for argument patterns
 }
 
 export interface TranscriptEntry {
@@ -106,7 +119,15 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       totalClaims: 0,
       verifiedClaims: 0,
       claimHistory: [],
-      topicExpertise: {}
+      topicExpertise: {},
+      argumentPatterns: {
+        citesStudies: 0,
+        usesDebunkedSources: 0,
+        fallacyFrequency: {},
+        factAccuracyByTopic: {},
+        emotionalAppealFrequency: 0,
+        preferredTopics: []
+      }
     },
     {
       id: '2',
@@ -117,7 +138,15 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       totalClaims: 0,
       verifiedClaims: 0,
       claimHistory: [],
-      topicExpertise: {}
+      topicExpertise: {},
+      argumentPatterns: {
+        citesStudies: 0,
+        usesDebunkedSources: 0,
+        fallacyFrequency: {},
+        factAccuracyByTopic: {},
+        emotionalAppealFrequency: 0,
+        preferredTopics: []
+      }
     }
   ]);
   
@@ -149,7 +178,15 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       totalClaims: 0,
       verifiedClaims: 0,
       claimHistory: [],
-      topicExpertise: {}
+      topicExpertise: {},
+      argumentPatterns: {
+        citesStudies: 0,
+        usesDebunkedSources: 0,
+        fallacyFrequency: {},
+        factAccuracyByTopic: {},
+        emotionalAppealFrequency: 0,
+        preferredTopics: []
+      }
     };
     
     setSpeakers([...speakers, newSpeaker]);
@@ -322,7 +359,15 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
       totalClaims: 0,
       verifiedClaims: 0,
       claimHistory: [],
-      topicExpertise: {}
+      topicExpertise: {},
+      argumentPatterns: {
+        citesStudies: 0,
+        usesDebunkedSources: 0,
+        fallacyFrequency: {},
+        factAccuracyByTopic: {},
+        emotionalAppealFrequency: 0,
+        preferredTopics: []
+      }
     })));
     
     toast.info("Debate transcript cleared");
@@ -373,13 +418,95 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
             topicExpertise[`${claim.topic}_verified`] = verifiedTopicClaims;
           }
           
+          const argumentPatterns = { ...(speaker.argumentPatterns || {
+            citesStudies: 0,
+            usesDebunkedSources: 0,
+            fallacyFrequency: {},
+            factAccuracyByTopic: {},
+            emotionalAppealFrequency: 0,
+            preferredTopics: []
+          })};
+          
+          if (claim.text.toLowerCase().includes('study') || 
+              claim.text.toLowerCase().includes('research') || 
+              claim.text.toLowerCase().includes('scientist') ||
+              claim.text.toLowerCase().includes('paper')) {
+            argumentPatterns.citesStudies += 1;
+          }
+          
+          if (factCheck.debunkedStudies) {
+            argumentPatterns.usesDebunkedSources += 1;
+          }
+          
+          if (claim.fallacies) {
+            claim.fallacies.forEach(fallacy => {
+              argumentPatterns.fallacyFrequency[fallacy] = (argumentPatterns.fallacyFrequency[fallacy] || 0) + 1;
+            });
+          }
+          
+          if (claim.topic) {
+            const isTrue = factCheck.verdict === 'true';
+            const topicClaims = argumentPatterns.factAccuracyByTopic[`${claim.topic}_total`] || 0;
+            const topicTrueClaims = argumentPatterns.factAccuracyByTopic[`${claim.topic}_true`] || 0;
+            
+            argumentPatterns.factAccuracyByTopic[`${claim.topic}_total`] = topicClaims + 1;
+            argumentPatterns.factAccuracyByTopic[`${claim.topic}_true`] = topicTrueClaims + (isTrue ? 1 : 0);
+            argumentPatterns.factAccuracyByTopic[claim.topic] = Math.round(((topicTrueClaims + (isTrue ? 1 : 0)) / (topicClaims + 1)) * 100);
+          }
+          
+          if (claim.text.toLowerCase().includes('feel') ||
+              claim.text.toLowerCase().includes('emotion') ||
+              claim.text.toLowerCase().includes('believe') ||
+              claim.text.toLowerCase().includes('think of the') ||
+              claim.text.toLowerCase().includes('imagine if')) {
+            argumentPatterns.emotionalAppealFrequency += 1;
+          }
+          
+          if (claim.topic && !argumentPatterns.preferredTopics.includes(claim.topic)) {
+            argumentPatterns.preferredTopics = 
+              [...argumentPatterns.preferredTopics, claim.topic]
+                .sort((a, b) => {
+                  const aCount = topicExpertise[`${a}_total`] || 0;
+                  const bCount = topicExpertise[`${b}_total`] || 0;
+                  return bCount - aCount;
+                })
+                .slice(0, 5);
+          }
+          
+          const determineBias = () => {
+            const totalClaimsAnalyzed = totalClaims >= 5 ? totalClaims : 0;
+            if (totalClaimsAnalyzed === 0) return undefined;
+            
+            const studyRatio = argumentPatterns.citesStudies / totalClaimsAnalyzed;
+            const emotionalRatio = argumentPatterns.emotionalAppealFrequency / totalClaimsAnalyzed;
+            const fallacyRatio = Object.values(argumentPatterns.fallacyFrequency)
+              .reduce((sum, count) => sum + count, 0) / totalClaimsAnalyzed;
+            const debunkedRatio = argumentPatterns.usesDebunkedSources / totalClaimsAnalyzed;
+            
+            if (studyRatio > 0.6 && accuracyScore > 70) return 'scientific';
+            if (emotionalRatio > 0.5) return 'emotional';
+            if (fallacyRatio > 0.4) return 'sensationalist';
+            if (debunkedRatio > 0.3) return 'political';
+            if (accuracyScore > 80) return 'factual';
+            return 'neutral';
+          };
+          
+          argumentPatterns.overallBias = determineBias();
+          
+          if (claimHistory.length >= 3) {
+            const recent = claimHistory.slice(-3);
+            argumentPatterns.improvementTrend = 
+              recent[2].accuracyScore > recent[0].accuracyScore;
+          }
+          
           return {
             ...speaker,
             totalClaims,
             verifiedClaims,
             accuracyScore,
             claimHistory,
-            topicExpertise
+            topicExpertise,
+            argumentPatterns
           };
         }
         return speaker;

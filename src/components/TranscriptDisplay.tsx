@@ -4,19 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Mic, Flag } from "lucide-react";
+import { AlertCircle, Mic, Flag, Fingerprint } from "lucide-react";
 import { EmotionType } from "@/services/speechService";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TranscriptEntryProps {
   entry: TranscriptEntry;
   speakerColor: string;
   speakerName: string;
   onMarkAsClaim: () => void;
+  argumentStyle?: string;
 }
 
-const TranscriptEntryComponent = ({ entry, speakerColor, speakerName, onMarkAsClaim }: TranscriptEntryProps) => {
+const TranscriptEntryComponent = ({ 
+  entry, 
+  speakerColor, 
+  speakerName, 
+  onMarkAsClaim,
+  argumentStyle
+}: TranscriptEntryProps) => {
   const { text, isClaim, timestamp, emotion } = entry;
   
   const getEmotionBadge = () => {
@@ -41,6 +49,18 @@ const TranscriptEntryComponent = ({ entry, speakerColor, speakerName, onMarkAsCl
     );
   };
   
+  // Get bias color
+  const getBiasColor = (bias?: string) => {
+    switch(bias) {
+      case 'factual': return 'text-green-600';
+      case 'scientific': return 'text-blue-600';
+      case 'emotional': return 'text-yellow-600';
+      case 'political': return 'text-purple-600';
+      case 'sensationalist': return 'text-red-600';
+      default: return 'text-slate-600';
+    }
+  };
+  
   return (
     <div className={cn(
       "mb-3 p-3 rounded-md transition-all group relative",
@@ -53,6 +73,27 @@ const TranscriptEntryComponent = ({ entry, speakerColor, speakerName, onMarkAsCl
           <span className={`w-2 h-2 rounded-full bg-${speakerColor}`}></span>
           {speakerName}
           {getEmotionBadge()}
+          
+          {/* Show argument style if available */}
+          {argumentStyle && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={cn(
+                    "ml-1 cursor-help",
+                    getBiasColor(argumentStyle)
+                  )}>
+                    <Fingerprint className="h-3 w-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    {speakerName} tends to use a <span className="font-medium">{argumentStyle}</span> argumentation style
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </span>
         <div className="flex items-center">
           <span className="text-xs">{timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -108,7 +149,8 @@ const TranscriptDisplay = () => {
     const speaker = speakers.find(s => s.id === speakerId);
     return {
       color: speaker?.color || "gray",
-      name: speaker?.name || "Unknown Speaker"
+      name: speaker?.name || "Unknown Speaker",
+      argumentStyle: speaker?.argumentPatterns?.overallBias
     };
   };
 
@@ -163,13 +205,14 @@ const TranscriptDisplay = () => {
               </div>
             ) : (
               transcript.map(entry => {
-                const { color, name } = getSpeakerInfo(entry.speakerId);
+                const { color, name, argumentStyle } = getSpeakerInfo(entry.speakerId);
                 return (
                   <TranscriptEntryComponent 
                     key={entry.id} 
                     entry={entry} 
                     speakerColor={color}
                     speakerName={name}
+                    argumentStyle={argumentStyle}
                     onMarkAsClaim={() => handleMarkAsClaim(entry.id)}
                   />
                 );
