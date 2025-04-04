@@ -1,4 +1,3 @@
-
 import { TranscriptEntry } from "@/context/DebateContext";
 
 // Emotion types for voice analysis
@@ -19,16 +18,19 @@ export const startSpeechRecognition = (
   onTranscript: (text: string, isClaim: boolean) => void,
   onEmotionDetected?: (emotion: EmotionType) => void
 ) => {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+  // Check browser support more thoroughly
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
     console.error("Speech recognition is not supported in this browser.");
+    onTranscript("Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.", false);
     return () => {};
   }
 
-  // Initialize speech recognition
+  // Initialize speech recognition with better browser compatibility
   // @ts-ignore - TypeScript doesn't have built-in types for webkitSpeechRecognition
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
   
+  // Configure recognition parameters
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
@@ -38,6 +40,8 @@ export const startSpeechRecognition = (
   let lastTranscript = ''; // Track the previous transcript for context
   let contextBuffer = []; // Store recent statements for multi-sentence context
   let recognitionTimeout: number | null = null; // For handling pauses
+  let recognitionRestartAttempts = 0;
+  const MAX_RESTART_ATTEMPTS = 3;
   
   // For emotion analysis
   let audioContext: AudioContext | null = null;
@@ -51,7 +55,8 @@ export const startSpeechRecognition = (
   let speakingTooFast = false;
   
   recognition.onstart = () => {
-    console.log("Speech recognition started");
+    console.log("Speech recognition started successfully");
+    recognitionRestartAttempts = 0;
     
     // Setup audio analysis for emotion detection if callback is provided
     if (onEmotionDetected) {
@@ -67,11 +72,17 @@ export const startSpeechRecognition = (
   // Handle no speech errors by automatically restarting
   recognition.onnomatch = () => {
     console.log("No speech detected. Restarting recognition...");
-    try {
-      recognition.stop();
-      setTimeout(() => recognition.start(), 100);
-    } catch (e) {
-      console.error("Error restarting speech recognition:", e);
+    if (recognitionRestartAttempts < MAX_RESTART_ATTEMPTS) {
+      recognitionRestartAttempts++;
+      try {
+        recognition.stop();
+        setTimeout(() => recognition.start(), 300);
+      } catch (e) {
+        console.error("Error restarting speech recognition:", e);
+        onTranscript("Error with speech recognition. Please try restarting the mic.", false);
+      }
+    } else {
+      onTranscript("No speech detected after multiple attempts. Please check your microphone.", false);
     }
   };
   
@@ -119,6 +130,8 @@ export const startSpeechRecognition = (
           // This is the last final result in this batch
           finalTranscript = event.results[i][0].transcript;
           
+          console.log("Final transcript:", finalTranscript);
+          
           // Only process if the transcript has changed significantly
           if (finalTranscript.trim() && 
               levenshteinDistance(finalTranscript, lastTranscript) > finalTranscript.length * 0.3) {
@@ -149,6 +162,8 @@ export const startSpeechRecognition = (
         }
       } else {
         interimTranscript += event.results[i][0].transcript;
+        // Log interim results for debugging
+        console.log("Interim transcript:", interimTranscript);
       }
     }
   };
@@ -158,7 +173,7 @@ export const startSpeechRecognition = (
     
     // Handle common errors
     if (event.error === 'not-allowed') {
-      onTranscript("Microphone access denied. Please enable microphone permissions.", false);
+      onTranscript("Microphone access denied. Please enable microphone permissions in your browser settings.", false);
     } else if (event.error === 'network') {
       onTranscript("Network error occurred. Check your internet connection.", false);
       // Try to restart after network error
@@ -170,13 +185,20 @@ export const startSpeechRecognition = (
         }
       }, 3000);
     } else if (event.error === 'no-speech') {
+      console.log("No speech detected, restarting recognition");
       // Don't show message, just restart
       try {
         recognition.stop();
-        setTimeout(() => recognition.start(), 100);
+        setTimeout(() => recognition.start(), 300);
       } catch (e) {
         console.error("Error restarting after no-speech:", e);
       }
+    } else if (event.error === 'audio-capture') {
+      onTranscript("No microphone was found or microphone is not working. Please check your device.", false);
+    } else if (event.error === 'aborted') {
+      console.log("Speech recognition was aborted");
+    } else {
+      onTranscript(`Speech recognition error: ${event.error}. Please try restarting the microphone.`, false);
     }
   };
   
@@ -230,15 +252,17 @@ export const startSpeechRecognition = (
     }
   };
   
-  // Start recognition
+  // Start recognition with better error handling
   try {
     recognition.start();
+    console.log("Recognition started");
   } catch (e) {
     console.error("Error starting speech recognition:", e);
-    onTranscript("Failed to start speech recognition. Please reload the page.", false);
+    onTranscript("Failed to start speech recognition. Please refresh the page and try again.", false);
+    return () => {};
   }
   
-  // Return cleanup function
+  // Return cleanup function with improved error handling
   return () => {
     try {
       if (recognitionTimeout) {
