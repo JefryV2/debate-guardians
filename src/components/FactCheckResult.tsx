@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FactCheck } from '@/context/DebateContext';
 import { CheckCircle, XCircle, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
@@ -8,6 +9,11 @@ interface FactCheckResultProps {
 }
 
 const FactCheckResult = ({ factCheck }: FactCheckResultProps) => {
+  // Add a safety check at the top to ensure factCheck is defined
+  if (!factCheck) {
+    return null;
+  }
+
   const getIcon = () => {
     switch (factCheck.verdict) {
       case 'true':

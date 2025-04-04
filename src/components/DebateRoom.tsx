@@ -51,6 +51,7 @@ const DebateRoom = () => {
   const [aiEnabled, setAiEnabled] = useState(Boolean(localStorage.getItem("gemini-api-key")));
   const [fallacyDetectionEnabled, setFallacyDetectionEnabled] = useState(true);
   const [knowledgeGapDetectionEnabled, setKnowledgeGapDetectionEnabled] = useState(true);
+  const [factChecks, setFactChecks] = useState([]);
 
   useEffect(() => {
     setSpeakerNames(speakers.map(s => s.name));
@@ -151,6 +152,7 @@ const DebateRoom = () => {
       try {
         const factCheckResult = await checkFactAgainstDatabase(lastClaim);
         addFactCheck(factCheckResult);
+        setFactChecks([...factChecks, factCheckResult]);
       } catch (error) {
         console.error("Error during fact check:", error);
         addFactCheck({
@@ -480,7 +482,20 @@ const DebateRoom = () => {
               <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <TranscriptDisplay />
-                  <FactCheckResults />
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2 mb-3">
+                      <BarChart2 className="h-4 w-4" />
+                      Fact Check Results
+                    </h3>
+                    {factChecks.map(factCheck => (
+                      <FactCheckResult key={factCheck.id} factCheck={factCheck} />
+                    ))}
+                    {factChecks.length === 0 && (
+                      <div className="text-center p-8 text-slate-500">
+                        No fact checks yet. Start speaking to generate some claims!
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

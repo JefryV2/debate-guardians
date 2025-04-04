@@ -25,6 +25,7 @@ export interface FactCheck {
   alternativePerspectives?: string[];
   logicalFallacies?: string[]; // Added for advanced fallacy detection
   debunkedStudies?: string; // Added for study validity assessment
+  counterArgument?: string; // Added for counter argument suggestions
 }
 
 export interface ArgumentPatterns {

@@ -3,6 +3,7 @@ import React from 'react';
 import { Slider } from "@/components/ui/slider";
 import { useDebate } from '@/context/DebateContext';
 import { InfoIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ToleranceSlider = () => {
   const { toleranceLevel, setToleranceLevel } = useDebate();
@@ -12,11 +13,19 @@ const ToleranceSlider = () => {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <h3 className="text-sm font-medium text-slate-700">Fact-Checking Tolerance</h3>
-          <InfoIcon 
-            size={14} 
-            className="text-slate-400 hover:text-slate-600 cursor-help"
-            title="Higher tolerance allows for slight numerical inaccuracies and minor differences in claims"
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon 
+                  size={14} 
+                  className="text-slate-400 hover:text-slate-600 cursor-help"
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                Higher tolerance allows for slight numerical inaccuracies and minor differences in claims
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <span className="text-xs bg-slate-100 px-2 py-1 rounded-md text-slate-700 font-medium">
           {toleranceLevel}%

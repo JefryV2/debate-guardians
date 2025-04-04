@@ -11,6 +11,7 @@ const CounterArgumentDisplay: React.FC<CounterArgumentDisplayProps> = ({ factChe
   const { factChecks } = useDebate();
   const factCheck = factChecks.find(fc => fc.id === factCheckId);
   
+  // Only render when factCheck exists and has a counterArgument
   if (!factCheck || !factCheck.counterArgument) {
     return null;
   }
