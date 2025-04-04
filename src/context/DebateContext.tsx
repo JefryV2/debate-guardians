@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "@/lib/toast";
 import { EmotionType } from "@/services/speechService";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 export interface Claim {
   id: string;
@@ -87,6 +88,8 @@ interface DebateContextType {
   markEntryAsClaim: (entryId: string) => void;
   continuousAnalysisMode: boolean;
   setContinuousAnalysisMode: (mode: boolean) => void;
+  toleranceLevel: number;
+  setToleranceLevel: (level: number) => void;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -157,6 +160,11 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
   const [currentSpeakerId, setCurrentSpeakerId] = useState<string>('1');
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [continuousAnalysisMode, setContinuousAnalysisMode] = useState<boolean>(true);
+  const [toleranceLevel, setToleranceLevel] = useLocalStorage<number>("debate-tolerance-level", 15);
+
+  useEffect(() => {
+    localStorage.setItem("debate-tolerance-level", toleranceLevel.toString());
+  }, [toleranceLevel]);
 
   const addSpeaker = () => {
     if (speakers.length >= 8) {
@@ -550,7 +558,9 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
         removeSpeaker,
         markEntryAsClaim,
         continuousAnalysisMode,
-        setContinuousAnalysisMode
+        setContinuousAnalysisMode,
+        toleranceLevel,
+        setToleranceLevel
       }}
     >
       {children}

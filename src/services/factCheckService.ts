@@ -1,6 +1,11 @@
-
 import { Claim } from "@/context/DebateContext";
 import { commonMyths } from "@/data/commonMyths";
+
+// Get tolerance level from localStorage or use default
+const getToleranceLevel = (): number => {
+  const storedTolerance = localStorage.getItem("debate-tolerance-level");
+  return storedTolerance ? parseInt(storedTolerance, 10) : 15; // Default 15%
+};
 
 // Expanded service to check facts using AI (Gemini API integration)
 export const checkFactAgainstDatabase = async (claim: Claim) => {
@@ -11,6 +16,10 @@ export const checkFactAgainstDatabase = async (claim: Claim) => {
   const localMatch = checkAgainstLocalDatabase(claim);
   if (localMatch) {
     console.log("Found in local database");
+    // Add counter argument if needed
+    if (localMatch.verdict === 'false' || localMatch.logicalFallacies?.length > 0) {
+      localMatch.counterArgument = generateCounterArgument(claim.text, localMatch);
+    }
     return localMatch;
   }
   
@@ -21,10 +30,11 @@ export const checkFactAgainstDatabase = async (claim: Claim) => {
 // Local database check (kept as fallback)
 const checkAgainstLocalDatabase = (claim: Claim) => {
   const claimText = claim.text.toLowerCase();
+  const toleranceLevel = getToleranceLevel();
   
   for (const myth of commonMyths) {
-    if (claimText.includes(myth.claim.toLowerCase()) || 
-        myth.claim.toLowerCase().includes(claimText)) {
+    // Apply tolerance to numeric claims
+    if (doesClaimMatchWithTolerance(claimText, myth.claim.toLowerCase(), toleranceLevel)) {
       return {
         claimId: claim.id,
         verdict: myth.verdict as 'true' | 'false' | 'unverified',
@@ -32,7 +42,12 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
         explanation: myth.explanation,
         confidenceScore: myth.verdict === 'unverified' ? 50 : 90, // High confidence for database entries
         logicalFallacies: detectLogicalFallacies(claim.text),
-        debunkedStudies: detectDebunkedStudies(claim.text)
+        debunkedStudies: detectDebunkedStudies(claim.text),
+        counterArgument: generateCounterArgument(claim.text, {
+          verdict: myth.verdict as 'true' | 'false' | 'unverified',
+          explanation: myth.explanation,
+          logicalFallacies: detectLogicalFallacies(claim.text)
+        })
       };
     }
   }
@@ -40,10 +55,102 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
   return null;
 };
 
+// New function to check if claims match with tolerance for numeric values
+const doesClaimMatchWithTolerance = (claim1: string, claim2: string, tolerancePercent: number): boolean => {
+  // Exact match check
+  if (claim1.includes(claim2) || claim2.includes(claim1)) {
+    return true;
+  }
+  
+  // Extract numeric values from both claims
+  const numbers1 = extractNumbers(claim1);
+  const numbers2 = extractNumbers(claim2);
+  
+  if (numbers1.length === 0 || numbers2.length === 0) {
+    return false;
+  }
+  
+  // Check if any numbers in claim1 match any numbers in claim2 within tolerance
+  for (const num1 of numbers1) {
+    for (const num2 of numbers2) {
+      const tolerance = (num2 * tolerancePercent) / 100;
+      if (Math.abs(num1 - num2) <= tolerance) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+};
+
+// Extract numeric values from text
+const extractNumbers = (text: string): number[] => {
+  const numberMatches = text.match(/\d+(\.\d+)?/g);
+  if (!numberMatches) return [];
+  return numberMatches.map(n => parseFloat(n));
+};
+
+// Generate counter argument based on fact check and detected fallacies
+const generateCounterArgument = (claimText: string, factCheck: {
+  verdict: 'true' | 'false' | 'unverified',
+  explanation?: string,
+  logicalFallacies?: string[]
+}): string => {
+  if (factCheck.verdict === 'true') {
+    return "";
+  }
+  
+  let counterArgument = "";
+  
+  // Add fallacy-specific counter arguments
+  if (factCheck.logicalFallacies && factCheck.logicalFallacies.length > 0) {
+    const fallacy = factCheck.logicalFallacies[0];
+    
+    switch (fallacy) {
+      case 'Correlation-Causation Fallacy':
+        counterArgument = "Correlation doesn't imply causation. These events happening together doesn't prove one caused the other. We'd need controlled studies to establish causality.";
+        break;
+      case 'Cherry Picking':
+        counterArgument = "This relies on selective evidence. We should consider the full body of research, not just individual studies that support a particular view.";
+        break;
+      case 'Appeal to Authority':
+        counterArgument = "Expertise matters, but we should evaluate the evidence itself rather than accepting something solely based on who said it.";
+        break;
+      case 'Hasty Generalization':
+        counterArgument = "This conclusion is drawn from too small a sample. We need more comprehensive data before making such broad claims.";
+        break;
+      case 'Straw Man':
+        counterArgument = "This misrepresents the opposing position. Let's address what's actually being argued rather than an exaggerated version.";
+        break;
+      case 'False Dilemma':
+        counterArgument = "This presents a false choice between only two options when there are likely more alternatives we should consider.";
+        break;
+      case 'Slippery Slope':
+        counterArgument = "This assumes one event will inevitably lead to extreme consequences without evidence for such a chain reaction.";
+        break;
+      default:
+        counterArgument = "This argument contains logical fallacies that weaken its conclusion. We should reconsider the evidence and reasoning.";
+    }
+  }
+  // For false claims without specific fallacies
+  else if (factCheck.verdict === 'false') {
+    counterArgument = factCheck.explanation 
+      ? `This claim is not supported by evidence. ${factCheck.explanation} A more accurate position would acknowledge these facts.`
+      : "This claim contradicts established evidence. We should base our arguments on verified information rather than misconceptions.";
+  }
+  // For unverified claims
+  else if (factCheck.verdict === 'unverified') {
+    counterArgument = "This claim lacks sufficient evidence. We should acknowledge the uncertainty and avoid presenting it as established fact until more research is available.";
+  }
+  
+  return counterArgument;
+};
+
 // Gemini AI-powered fact checking function
 const geminiFactCheck = async (claim: Claim) => {
   const claimText = claim.text;
   const topic = claim.topic || 'unknown';
+  const toleranceLevel = getToleranceLevel();
   
   try {
     console.log("Gemini AI analyzing claim:", claimText);
@@ -56,11 +163,13 @@ const geminiFactCheck = async (claim: Claim) => {
       return fallbackFactCheck(claim);
     }
     
-    // Enhanced prompt for Gemini - now includes research validity analysis
+    // Enhanced prompt for Gemini - now includes counter argument generation
     const prompt = `
       Act as a professional fact-checker with expertise in ${topic}. Analyze this claim:
       
       "${claimText}"
+      
+      Consider a tolerance level of ${toleranceLevel}% for numerical claims (e.g., if the claim mentions 80% but the actual figure is between ${80 - toleranceLevel}% and ${80 + toleranceLevel}%, consider it accurate enough).
       
       For your response, provide:
       1. Verdict: ONLY "true", "false", or "unverified"
@@ -71,6 +180,7 @@ const geminiFactCheck = async (claim: Claim) => {
       6. Alternative Perspective: A brief alternative viewpoint, if relevant
       7. Study Validity: If a specific study is mentioned, analyze if it has been debunked, retracted, or criticized by the scientific community
       8. Logical Fallacies: Identify any logical fallacies in the claim (e.g., correlation-causation errors, appeal to authority, cherry picking)
+      9. Counter Argument: If the claim is false or contains fallacies, provide a constructive counter argument that could be used in a debate (2-3 sentences)
       
       Format your response as JSON:
       {
@@ -81,7 +191,8 @@ const geminiFactCheck = async (claim: Claim) => {
         "knowledgeGaps": "Areas of limited consensus or knowledge here",
         "alternativePerspective": "Alternative perspective here",
         "debunkedStudies": "Information about study validity if applicable",
-        "logicalFallacies": ["List any detected fallacies here"]
+        "logicalFallacies": ["List any detected fallacies here"],
+        "counterArgument": "Your counter argument here if applicable"
       }
       
       Focus on factual accuracy, research validity, and logical reasoning.
@@ -138,6 +249,7 @@ const geminiFactCheck = async (claim: Claim) => {
       alternativePerspective?: string;
       debunkedStudies?: string;
       logicalFallacies?: string[];
+      counterArgument?: string;
     };
     
     try {
@@ -187,6 +299,16 @@ const geminiFactCheck = async (claim: Claim) => {
     // Ensure debunked studies are identified
     const debunkedStudies = parsedResponse.debunkedStudies || detectDebunkedStudies(claim.text);
     
+    // Generate counter argument if Gemini didn't provide one
+    const counterArgument = parsedResponse.counterArgument || 
+      ((normalizedVerdict === 'false' || logicalFallacies.length > 0) ? 
+        generateCounterArgument(claim.text, {
+          verdict: normalizedVerdict,
+          explanation: parsedResponse.explanation,
+          logicalFallacies
+        }) : 
+        undefined);
+    
     return {
       claimId: claim.id,
       verdict: normalizedVerdict,
@@ -195,7 +317,8 @@ const geminiFactCheck = async (claim: Claim) => {
       confidenceScore: parsedResponse.confidence || generateConfidenceScore(normalizedVerdict),
       alternativePerspectives,
       logicalFallacies: logicalFallacies.length > 0 ? logicalFallacies : undefined,
-      debunkedStudies: debunkedStudies ? debunkedStudies : undefined
+      debunkedStudies: debunkedStudies ? debunkedStudies : undefined,
+      counterArgument
     };
     
   } catch (error) {
@@ -218,14 +341,22 @@ const fallbackFactCheck = async (claim: Claim) => {
     lowerClaimText.includes("climate change is a hoax") ||
     lowerClaimText.includes("moon landing was faked")
   ) {
+    const logicalFallacies = detectLogicalFallacies(claim.text);
+    const counterArgument = generateCounterArgument(claim.text, {
+      verdict: 'false',
+      explanation: "This claim contradicts scientific consensus.",
+      logicalFallacies
+    });
+    
     return {
       claimId: claim.id,
       verdict: 'false' as const,
       source: "Fallback fact checker",
       explanation: "This claim contradicts scientific consensus. (AI service unavailable, using fallback)",
       confidenceScore: 85,
-      logicalFallacies: detectLogicalFallacies(claim.text),
-      debunkedStudies: detectDebunkedStudies(claim.text)
+      logicalFallacies,
+      debunkedStudies: detectDebunkedStudies(claim.text),
+      counterArgument
     };
   }
   
@@ -247,14 +378,18 @@ const fallbackFactCheck = async (claim: Claim) => {
     };
   }
   
+  const logicalFallacies = detectLogicalFallacies(claim.text);
   return {
     claimId: claim.id,
     verdict: 'unverified' as const,
     source: "Fallback fact checker",
     explanation: "Unable to verify this claim. (AI service unavailable, using fallback)",
     confidenceScore: 40,
-    logicalFallacies: detectLogicalFallacies(claim.text),
-    debunkedStudies: detectDebunkedStudies(claim.text)
+    logicalFallacies,
+    debunkedStudies: detectDebunkedStudies(claim.text),
+    counterArgument: logicalFallacies.length > 0 ? 
+      generateCounterArgument(claim.text, { verdict: 'unverified', logicalFallacies }) : 
+      undefined
   };
 };
 
