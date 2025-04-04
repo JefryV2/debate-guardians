@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useDebate } from '@/context/DebateContext';
-import { LightbulbIcon, XCircleIcon } from 'lucide-react';
+import { LightbulbIcon } from 'lucide-react';
 
 interface CounterArgumentDisplayProps {
   factCheckId: string;
