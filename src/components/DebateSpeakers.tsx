@@ -60,7 +60,7 @@ const DebateSpeakers = () => {
             <Button 
               onClick={addSpeaker} 
               variant="outline" 
-              size="xs"
+              size="sm"
               className="h-6 text-xs flex gap-1 items-center rounded-full"
             >
               <UserPlus className="h-3 w-3" />
@@ -167,3 +167,4 @@ const DebateSpeakers = () => {
 };
 
 export default DebateSpeakers;
+
