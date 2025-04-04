@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle } from "lucide-react";
 
 const DebateRoom = () => {
   const { 
@@ -53,8 +52,6 @@ const DebateRoom = () => {
   const [fallacyDetectionEnabled, setFallacyDetectionEnabled] = useState(true);
   const [knowledgeGapDetectionEnabled, setKnowledgeGapDetectionEnabled] = useState(true);
   const [factChecks, setFactChecks] = useState([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [micPermissionGranted, setMicPermissionGranted] = useState<boolean | null>(null);
 
   useEffect(() => {
     setSpeakerNames(speakers.map(s => s.name));
@@ -77,28 +74,11 @@ const DebateRoom = () => {
     setApiKeyDialogOpen(false);
   };
 
-  const toggleMicrophone = async () => {
+  const toggleMicrophone = () => {
     if (!activeListener) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop());
-        
-        setMicPermissionGranted(true);
-        setErrorMessage(null);
-        
-        toast.success("Microphone activated", {
-          description: "The debate fact-checking system is now listening."
-        });
-      } catch (error) {
-        console.error("Microphone permission error:", error);
-        setMicPermissionGranted(false);
-        setErrorMessage("Microphone access denied. Please enable microphone permissions in your browser settings.");
-        
-        toast.error("Microphone access denied", {
-          description: "Please enable microphone permissions in your browser settings."
-        });
-        return;
-      }
+      toast.success("Microphone activated", {
+        description: "The debate fact-checking system is now listening."
+      });
     } else {
       toast.info("Microphone deactivated", {
         description: "The debate fact-checking system is now paused."
@@ -113,17 +93,6 @@ const DebateRoom = () => {
     const stopRecognition = startSpeechRecognition(
       currentSpeakerId, 
       (text, isClaim) => {
-        if (text.includes("microphone access denied") || 
-            text.includes("not supported") || 
-            text.includes("No microphone")) {
-          setErrorMessage(text);
-          setActiveListener(false);
-          toast.error("Microphone issue", {
-            description: text
-          });
-          return;
-        }
-        
         addTranscriptEntry({
           text,
           speakerId: currentSpeakerId,
@@ -372,20 +341,6 @@ const DebateRoom = () => {
           </CardHeader>
           
           <CardContent className="px-4 py-6">
-            {errorMessage && (
-              <div className="mb-4 p-3 border border-red-200 bg-red-50 rounded-lg text-red-800 flex items-start">
-                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
-                <div>
-                  <p className="font-medium">Microphone Issue Detected</p>
-                  <p className="text-sm mt-1">{errorMessage}</p>
-                  <p className="text-xs mt-2">
-                    Tips: Make sure your browser has permission to use your microphone. 
-                    Speech recognition works best in Chrome, Edge, or Safari.
-                  </p>
-                </div>
-              </div>
-            )}
-            
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1">
                 <Tabs defaultValue="speakers" className="w-full">
