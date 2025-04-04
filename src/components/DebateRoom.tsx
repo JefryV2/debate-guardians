@@ -1,4 +1,3 @@
-
 import { useDebate } from "@/context/DebateContext";
 import SpeakerCard from "./SpeakerCard";
 import SpeakerStats from "./SpeakerStats";
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, 
   Meh, Info, Shield, UserPlus, UserMinus, Users, Lightbulb, 
-  BarChart2, FileText, GitCompare, Flag
+  BarChart2, FileText, GitCompare, Flag, Sparkles
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
@@ -193,13 +192,13 @@ const DebateRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-screen-xl mx-auto">
-        <Card className="mb-6 shadow-lg border-0 bg-white/80 backdrop-blur">
-          <CardHeader className="pb-4 border-b">
+        <Card className="mb-6 neo-card border-0 overflow-hidden">
+          <CardHeader className="pb-4 border-b bg-gradient-to-r from-purple-50 to-indigo-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+                <CardTitle className="text-3xl font-bold purple-gradient-text">
                   Debate Guardians
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -212,8 +211,8 @@ const DebateRoom = () => {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "border-slate-200 flex items-center gap-1", 
-                    aiEnabled ? "text-green-600" : ""
+                    "border-slate-200 flex items-center gap-1 rounded-full", 
+                    aiEnabled ? "text-violet-600" : ""
                   )}
                 >
                   <Shield className="h-4 w-4" />
@@ -225,6 +224,7 @@ const DebateRoom = () => {
                     id="emotion-detection" 
                     checked={emotionDetectionEnabled}
                     onCheckedChange={setEmotionDetectionEnabled}
+                    className="data-[state=checked]:bg-violet-600"
                   />
                   <Label htmlFor="emotion-detection" className="flex items-center gap-1 text-sm">
                     {getEmotionIcon(currentEmotion)}
@@ -234,12 +234,12 @@ const DebateRoom = () => {
                 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="border-slate-200 flex items-center gap-1">
-                      <BarChart2 className="h-4 w-4" />
+                    <Button variant="outline" size="sm" className="border-slate-200 flex items-center gap-1 rounded-full">
+                      <Sparkles className="h-4 w-4" />
                       Features
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-60">
+                  <PopoverContent className="w-60 neo-card border-0">
                     <div className="space-y-3">
                       <h4 className="font-medium text-sm">Analysis Features</h4>
                       <div className="flex items-center space-x-2">
@@ -247,6 +247,7 @@ const DebateRoom = () => {
                           id="continuous-analysis" 
                           checked={continuousAnalysisMode}
                           onCheckedChange={setContinuousAnalysisMode}
+                          className="data-[state=checked]:bg-violet-600"
                         />
                         <Label htmlFor="continuous-analysis" className="text-sm flex items-center gap-1">
                           <GitCompare className="h-3 w-3" />
@@ -258,6 +259,7 @@ const DebateRoom = () => {
                           id="fallacy-detection" 
                           checked={fallacyDetectionEnabled}
                           onCheckedChange={setFallacyDetectionEnabled}
+                          className="data-[state=checked]:bg-violet-600"
                         />
                         <Label htmlFor="fallacy-detection" className="text-sm flex items-center gap-1">
                           <Lightbulb className="h-3 w-3" />
@@ -269,6 +271,7 @@ const DebateRoom = () => {
                           id="knowledge-gap-detection" 
                           checked={knowledgeGapDetectionEnabled}
                           onCheckedChange={setKnowledgeGapDetectionEnabled}
+                          className="data-[state=checked]:bg-violet-600"
                         />
                         <Label htmlFor="knowledge-gap-detection" className="text-sm flex items-center gap-1">
                           <FileText className="h-3 w-3" />
@@ -280,6 +283,7 @@ const DebateRoom = () => {
                           id="debug-mode" 
                           checked={debugMode}
                           onCheckedChange={setDebugMode}
+                          className="data-[state=checked]:bg-violet-600"
                         />
                         <Label htmlFor="debug-mode" className="text-sm flex items-center gap-1">
                           <Bug className="h-3 w-3" />
@@ -295,7 +299,7 @@ const DebateRoom = () => {
                   variant="outline"
                   size="icon"
                   title="Clear transcript"
-                  className="border-slate-200"
+                  className="border-slate-200 rounded-full"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -305,7 +309,7 @@ const DebateRoom = () => {
                   size="icon"
                   title="Edit speakers"
                   className={cn(
-                    "border-slate-200",
+                    "border-slate-200 rounded-full",
                     isEditingSpeakers && "bg-muted"
                   )}
                 >
@@ -314,7 +318,7 @@ const DebateRoom = () => {
                 <Button
                   onClick={toggleMicrophone}
                   variant={activeListener ? "destructive" : "default"}
-                  className="flex items-center gap-2 shadow-md"
+                  className="flex items-center gap-2 shadow-md rounded-full"
                   disabled={isEditingSpeakers}
                   size="sm"
                 >
@@ -335,15 +339,21 @@ const DebateRoom = () => {
           </CardHeader>
           
           <CardContent className="px-4 py-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1">
-                <Tabs defaultValue="speakers">
-                  <TabsList className="w-full mb-4">
-                    <TabsTrigger value="speakers" className="flex items-center gap-1 flex-1">
+                <Tabs defaultValue="speakers" className="w-full">
+                  <TabsList className="w-full mb-4 bg-slate-100 p-1 rounded-lg">
+                    <TabsTrigger 
+                      value="speakers" 
+                      className="flex items-center gap-1 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                    >
                       <Users className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">Speakers</span>
                     </TabsTrigger>
-                    <TabsTrigger value="stats" className="flex items-center gap-1 flex-1">
+                    <TabsTrigger 
+                      value="stats" 
+                      className="flex items-center gap-1 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                    >
                       <BarChart2 className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">Stats</span>
                     </TabsTrigger>
@@ -360,7 +370,7 @@ const DebateRoom = () => {
                           onClick={addSpeaker} 
                           variant="outline" 
                           size="sm"
-                          className="text-xs flex gap-1 items-center"
+                          className="text-xs flex gap-1 items-center rounded-full"
                         >
                           <UserPlus className="h-3 w-3" />
                           Add
@@ -381,7 +391,7 @@ const DebateRoom = () => {
                                   onClick={() => handleRemoveSpeaker(speaker.id)} 
                                   variant="ghost" 
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
                                 >
                                   <UserMinus className="h-3 w-3" />
                                 </Button>
@@ -392,7 +402,7 @@ const DebateRoom = () => {
                               value={speakerNames[i]}
                               onChange={(e) => handleSpeakerNameChange(i, e.target.value)}
                               placeholder={`Speaker ${i + 1}`}
-                              className="border-slate-200"
+                              className="border-slate-200 rounded-lg"
                             />
                           </div>
                         ))}
@@ -401,7 +411,7 @@ const DebateRoom = () => {
                             onClick={addSpeaker}
                             variant="outline"
                             size="sm"
-                            className="text-xs flex gap-1 items-center"
+                            className="text-xs flex gap-1 items-center rounded-full"
                             disabled={speakers.length >= 8}
                           >
                             <UserPlus className="h-3 w-3" />
@@ -416,7 +426,13 @@ const DebateRoom = () => {
                             >
                               Cancel
                             </Button>
-                            <Button onClick={saveSpeakerChanges} size="sm">Save</Button>
+                            <Button 
+                              onClick={saveSpeakerChanges} 
+                              size="sm"
+                              className="purple-gradient rounded-full"
+                            >
+                              Save
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -461,7 +477,7 @@ const DebateRoom = () => {
                 </Tabs>
               </div>
               
-              <div className="lg:col-span-4">
+              <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <TranscriptDisplay />
                   <FactCheckResults />
@@ -476,10 +492,10 @@ const DebateRoom = () => {
           </CardFooter>
         </Card>
         
-        <Card className="p-5 border-0 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md">
+        <Card className="p-5 neo-card border-0 bg-gradient-to-br from-purple-50 to-indigo-50 shadow-md">
           <div className="flex items-start">
-            <div className="bg-blue-100 p-2 rounded-full mr-3">
-              <Info className="h-5 w-5 text-blue-600" />
+            <div className="bg-violet-100 p-2 rounded-full mr-3">
+              <Info className="h-5 w-5 text-violet-600" />
             </div>
             <div>
               <h3 className="font-medium text-slate-800 mb-2">Using the Debate Guardian</h3>
@@ -515,7 +531,7 @@ const DebateRoom = () => {
       </div>
       
       <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md neo-card border-0">
           <DialogHeader>
             <DialogTitle>Set up Gemini AI Integration</DialogTitle>
             <DialogDescription>
@@ -530,7 +546,7 @@ const DebateRoom = () => {
                 value={apiKey} 
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key"
-                className="col-span-3"
+                className="col-span-3 border-slate-200"
               />
               <p className="text-sm text-muted-foreground">
                 Your API key is stored locally in your browser and never sent to our servers.
@@ -539,7 +555,13 @@ const DebateRoom = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" onClick={saveApiKey}>Save API Key</Button>
+            <Button 
+              type="submit" 
+              onClick={saveApiKey}
+              className="purple-gradient"
+            >
+              Save API Key
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

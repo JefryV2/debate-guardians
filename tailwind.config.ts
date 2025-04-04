@@ -70,6 +70,8 @@ export default {
 					true: '#16a34a',
 					false: '#dc2626',
 					unverified: '#f59e0b',
+                    violet: '#8b5cf6',
+                    indigo: '#6366f1',
 				}
 			},
 			borderRadius: {
@@ -97,12 +99,17 @@ export default {
 				'pulse-opacity': {
 					'0%, 100%': { opacity: '0.4' },
 					'50%': { opacity: '0.8' }
-				}
+				},
+                'float': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'pulse-opacity': 'pulse-opacity 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+				'pulse-opacity': 'pulse-opacity 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'float': 'float 5s ease-in-out infinite'
 			}
 		}
 	},

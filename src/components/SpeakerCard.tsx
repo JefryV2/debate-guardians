@@ -18,26 +18,23 @@ interface SpeakerCardProps {
 const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) => {
   const { name, avatar, accuracyScore, color, argumentPatterns } = speaker;
   
-  const getBorderColor = () => {
-    if (isActive) {
-      return `border-${color} shadow-lg shadow-${color}/30`;
-    }
-    return "border-gray-200";
-  };
-  
   const getEmotionLabel = () => {
     if (!emotion) return null;
     
+    const emotionColors: Record<EmotionType, string> = {
+      angry: "from-red-500 to-red-600",
+      happy: "from-green-500 to-green-600",
+      sad: "from-blue-500 to-blue-600",
+      excited: "from-yellow-500 to-yellow-600",
+      frustrated: "from-orange-500 to-orange-600",
+      uncertain: "from-purple-500 to-purple-600",
+      neutral: "from-gray-500 to-gray-600"
+    };
+    
     return (
       <div className={cn(
-        "absolute top-0 right-0 text-xs font-medium py-1 px-2 rounded-full transform translate-x-1/3 -translate-y-1/3 shadow-md",
-        emotion === 'angry' ? "bg-gradient-to-r from-red-500 to-red-600 text-white" :
-        emotion === 'happy' ? "bg-gradient-to-r from-green-500 to-green-600 text-white" :
-        emotion === 'sad' ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white" :
-        emotion === 'excited' ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white" :
-        emotion === 'frustrated' ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white" :
-        emotion === 'uncertain' ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white" :
-        "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
+        "absolute top-0 right-0 text-xs font-medium py-1 px-2 rounded-full transform translate-x-1/3 -translate-y-1/3 shadow-md text-white",
+        `bg-gradient-to-r ${emotionColors[emotion]}`
       )}>
         {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
       </div>
@@ -56,14 +53,15 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
     if (!argumentPatterns?.overallBias) return null;
     
     const getBadgeColor = () => {
-      switch(argumentPatterns.overallBias) {
-        case 'factual': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        case 'scientific': return 'bg-blue-100 text-blue-800 border-blue-200';
-        case 'emotional': return 'bg-amber-100 text-amber-800 border-amber-200';
-        case 'political': return 'bg-purple-100 text-purple-800 border-purple-200';
-        case 'sensationalist': return 'bg-rose-100 text-rose-800 border-rose-200';
-        default: return 'bg-slate-100 text-slate-800 border-slate-200';
-      }
+      const styles: Record<string, string> = {
+        factual: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        scientific: 'bg-blue-100 text-blue-800 border-blue-200',
+        emotional: 'bg-amber-100 text-amber-800 border-amber-200',
+        political: 'bg-purple-100 text-purple-800 border-purple-200',
+        sensationalist: 'bg-rose-100 text-rose-800 border-rose-200'
+      };
+      
+      return styles[argumentPatterns.overallBias] || 'bg-slate-100 text-slate-800 border-slate-200';
     };
 
     const getArgumentIcon = () => {
@@ -86,17 +84,16 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
   return (
     <Card 
       className={cn(
-        "w-full cursor-pointer transition-all hover:scale-[1.02] duration-200 overflow-hidden", 
-        getBorderColor(),
-        isActive ? "debate-card" : "bg-white"
+        "relative w-full cursor-pointer transition-all hover:scale-[1.02] duration-200 overflow-hidden glass-card rounded-xl",
+        isActive && "ring-2 ring-violet-500 shadow-lg shadow-violet-500/20"
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4 flex flex-col items-center relative">
-        <div className="relative mb-3 mt-2">
+      <CardContent className="p-5 flex flex-col items-center relative">
+        <div className="relative mb-3 mt-1">
           <div className={cn(
             "w-20 h-20 rounded-full overflow-hidden border-2 shadow-md",
-            isActive ? `border-${color}` : "border-gray-200"
+            isActive ? "border-violet-500" : "border-gray-200"
           )}>
             <img 
               src={avatar} 
@@ -107,7 +104,9 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
           {getEmotionLabel()}
           <div className={cn(
             "absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-md",
-            isActive ? `bg-gradient-to-r from-${color} to-${color}` : "bg-gradient-to-r from-gray-300 to-gray-400"
+            isActive 
+              ? "purple-gradient" 
+              : "bg-gradient-to-r from-gray-300 to-gray-400"
           )}>
             {isActive ? (
               <Mic className="w-4 h-4 text-white" />
@@ -122,11 +121,12 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
         
         <div className="w-full mt-3">
           <div className="flex justify-between text-sm mb-1">
-            <span>Accuracy</span>
+            <span className="text-slate-600">Accuracy</span>
             <span className={cn(
-              accuracyScore > 80 ? "text-green-600 font-semibold" : 
-              accuracyScore > 50 ? "text-yellow-600 font-semibold" : 
-              "text-red-600 font-semibold"
+              "font-medium",
+              accuracyScore > 80 ? "text-green-600" : 
+              accuracyScore > 50 ? "text-yellow-600" : 
+              "text-red-600"
             )}>
               {accuracyScore}%
             </span>
@@ -134,10 +134,10 @@ const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <Progress 
                     value={accuracyScore} 
-                    className={cn("h-2", getProgressColor())}
+                    className={cn("h-2.5", getProgressColor())}
                   />
                 </div>
               </TooltipTrigger>
