@@ -1,12 +1,9 @@
 
 import React from 'react';
-import { Settings, Mic, MicOff } from 'lucide-react';
+import { Settings, Mic, MicOff, Info, Zap } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/lib/toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HeaderProps {
   aiEnabled: boolean;
@@ -26,36 +23,56 @@ const Header = ({
   toggleMicrophone
 }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-10 bg-white border-b shadow-sm px-4 py-2">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
+      <div className="container mx-auto py-3 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div className="bg-purple-600 p-2 rounded-md">
             <Mic className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Debate Guardian</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+              Debate Guardian
+            </h1>
             <p className="text-xs text-gray-500">Real-time fact-checking for honest discussions</p>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">AI</span>
-            <Switch 
-              checked={aiEnabled} 
-              onCheckedChange={() => setApiKeyDialogOpen(true)} 
-              className="data-[state=checked]:bg-purple-600"
-            />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">AI</span>
+                  <Switch 
+                    checked={aiEnabled} 
+                    onCheckedChange={() => setApiKeyDialogOpen(true)} 
+                    className="data-[state=checked]:bg-purple-600"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Toggle AI-powered fact checking</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Emotion</span>
-            <Switch 
-              checked={emotionDetectionEnabled}
-              onCheckedChange={setEmotionDetectionEnabled}
-              className="data-[state=checked]:bg-purple-600"
-            />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Emotion</span>
+                  <Switch 
+                    checked={emotionDetectionEnabled}
+                    onCheckedChange={setEmotionDetectionEnabled}
+                    className="data-[state=checked]:bg-purple-600"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Enable emotion detection in transcript</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           <Button
             variant="outline"
@@ -67,13 +84,17 @@ const Header = ({
           
           <Button
             variant={activeListener ? "destructive" : "default"}
-            className="rounded-full bg-red-500 hover:bg-red-600 font-medium flex items-center gap-1"
+            className={`rounded-full font-medium flex items-center gap-1.5 ${
+              activeListener 
+                ? "bg-red-500 hover:bg-red-600" 
+                : "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+            }`}
             onClick={toggleMicrophone}
           >
             {activeListener ? (
               <>
                 <MicOff className="h-4 w-4" />
-                <span>Stop Listening</span>
+                <span>Stop</span>
               </>
             ) : (
               <>

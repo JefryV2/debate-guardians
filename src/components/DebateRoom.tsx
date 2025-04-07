@@ -1,4 +1,3 @@
-
 import { useDebate } from "@/context/DebateContext";
 import { useState, useEffect } from "react";
 import { startSpeechRecognition } from "@/services/speechService";
@@ -6,7 +5,7 @@ import { checkFactAgainstDatabase } from "@/services/factCheckService";
 import { toast } from "@/lib/toast";
 import { EmotionType } from "@/services/speechService";
 
-// Import new components
+// Import components
 import Header from "./Header";
 import TabNavigation from "./TabNavigation";
 import TranscriptDisplay from "./TranscriptDisplay";
@@ -39,7 +38,7 @@ const DebateRoom = () => {
   const [apiKey, setApiKey] = useState(localStorage.getItem("gemini-api-key") || "");
   const [aiEnabled, setAiEnabled] = useState(Boolean(localStorage.getItem("gemini-api-key")));
   const [factChecks, setFactChecks] = useState([]);
-  
+
   const saveApiKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem("gemini-api-key", apiKey.trim());
@@ -131,13 +130,12 @@ const DebateRoom = () => {
     checkFact();
   }, [claims, addFactCheck, debugMode, aiEnabled]);
 
-  // Sync factChecks with context
   useEffect(() => {
     setFactChecks(contextFactChecks);
   }, [contextFactChecks]);
   
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Header 
         aiEnabled={aiEnabled}
         setApiKeyDialogOpen={setApiKeyDialogOpen}
@@ -152,40 +150,51 @@ const DebateRoom = () => {
         setActiveTab={setActiveTab}
       />
       
-      <div className="container mx-auto py-6">
-        <div className="flex justify-end mb-4">
-          <ToleranceSlider />
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {activeTab === "transcript" && (
-            <>
-              <TranscriptDisplay />
+      <main className="flex-1 container mx-auto px-4 py-6">
+        {activeTab === "transcript" && (
+          <>
+            <div className="flex justify-end mb-4">
+              <ToleranceSlider />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TranscriptDisplay />
+              </div>
               
-              <div>
-                <h2 className="text-lg font-medium mb-2">Fact Check Results</h2>
-                <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
+              <div className="bg-white p-4 rounded-lg border shadow-sm">
+                <h2 className="text-lg font-medium mb-4 border-b pb-2">Fact Check Results</h2>
+                <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar pr-2">
                   {factChecks.length > 0 ? (
                     factChecks.map(factCheck => (
                       <FactCheckResult key={factCheck.id} factCheck={factCheck} />
                     ))
                   ) : (
-                    <div className="text-center p-8 text-gray-400">
-                      No fact checks yet. Start speaking to generate some claims!
+                    <div className="text-center p-8 text-gray-400 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200">
+                      <p className="mb-2">No fact checks yet</p>
+                      <p className="text-xs">Start speaking to generate claims</p>
                     </div>
                   )}
                 </div>
               </div>
-            </>
-          )}
-          
-          {activeTab === "speakers" && <SpeakerPanel />}
-          
-          {activeTab === "analytics" && <AnalyticsPanel />}
-        </div>
+            </div>
+          </>
+        )}
         
-        <HelpPanel />
-      </div>
+        {activeTab === "speakers" && (
+          <div className="bg-white p-6 rounded-lg border shadow-sm">
+            <SpeakerPanel />
+          </div>
+        )}
+        
+        {activeTab === "analytics" && (
+          <div className="bg-white p-6 rounded-lg border shadow-sm">
+            <AnalyticsPanel />
+          </div>
+        )}
+      </main>
+      
+      <HelpPanel />
       
       <ApiKeyDialog 
         open={apiKeyDialogOpen}
@@ -194,7 +203,7 @@ const DebateRoom = () => {
         setApiKey={setApiKey}
         saveApiKey={saveApiKey}
       />
-    </>
+    </div>
   );
 };
 

@@ -43,43 +43,41 @@ const FactCheckResult = ({ factCheck }: FactCheckResultProps) => {
   };
 
   const verification = getVerificationLabel();
-  // Remove references to timestamp which doesn't exist in FactCheck
 
   return (
-    <div className="mb-4 bg-white rounded-lg shadow-sm border p-4">
+    <div className="bg-white rounded-lg shadow-sm border p-4 mb-4 transition-all hover:shadow-md">
       <div className="flex justify-between items-start mb-2">
-        <div className="flex items-center gap-2">
-          <div className={`${verification.className} rounded-md px-2 py-1 flex items-center gap-1`}>
-            {verification.icon}
-            <span className="text-xs font-medium">{verification.text}</span>
-          </div>
+        <div className={`${verification.className} rounded-full px-2 py-0.5 flex items-center gap-1 text-xs`}>
+          {verification.icon}
+          <span className="font-medium">{verification.text}</span>
         </div>
       </div>
 
-      <h3 className="font-medium text-gray-900 mb-2">"{factCheck.explanation}"</h3>
-      
-      <p className="text-sm text-gray-700 mb-4">{factCheck.explanation}</p>
+      <p className="text-sm text-gray-700 mb-2">{factCheck.explanation}</p>
       
       {factCheck.source && (
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex items-center gap-1 mb-3">
           <a 
             href={factCheck.source} 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="text-xs text-purple-600 hover:underline flex items-center gap-1"
+            className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
           >
-            {factCheck.source.replace(/^https?:\/\//, '')}
-            <ExternalLink size={12} />
+            <span className="underline underline-offset-2">{factCheck.source.replace(/^https?:\/\//, '').substring(0, 30)}{factCheck.source.length > 30 ? '...' : ''}</span>
+            <ExternalLink size={10} />
           </a>
         </div>
       )}
 
       {factCheck.alternativePerspectives && factCheck.alternativePerspectives.length > 0 && (
-        <div className="mt-2 text-sm">
-          <h4 className="font-medium mb-1">Alternative Perspectives:</h4>
+        <div className="mt-2 bg-slate-50 p-2 rounded-md">
+          <h4 className="text-xs font-medium mb-1 text-gray-700">Alternative Perspectives:</h4>
           <ul className="text-xs text-gray-600 space-y-1">
             {factCheck.alternativePerspectives.map((perspective, index) => (
-              <li key={index}>{perspective}</li>
+              <li key={index} className="flex items-start gap-1.5">
+                <span className="text-purple-500 mt-0.5">•</span>
+                <span>{perspective}</span>
+              </li>
             ))}
           </ul>
         </div>
