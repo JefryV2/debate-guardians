@@ -1,7 +1,6 @@
 
 import { DebateProvider } from "@/context/DebateContext";
 import DebateRoom from "@/components/DebateRoom";
-import ToleranceSlider from "@/components/ToleranceSlider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Index = () => {

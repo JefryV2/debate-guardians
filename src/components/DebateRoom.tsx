@@ -1,8 +1,10 @@
+
 import { useDebate } from "@/context/DebateContext";
 import SpeakerCard from "./SpeakerCard";
 import SpeakerStats from "./SpeakerStats";
 import TranscriptDisplay from "./TranscriptDisplay";
 import FactCheckResult from "./FactCheckResult";
+import ToleranceSlider from "./ToleranceSlider";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
