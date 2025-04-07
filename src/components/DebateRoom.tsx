@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { startSpeechRecognition } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
 import { toast } from "@/lib/toast";
+import { EmotionType } from "@/services/speechService";
 
 // Import new components
 import Header from "./Header";
@@ -32,7 +33,7 @@ const DebateRoom = () => {
   } = useDebate();
   
   const [activeTab, setActiveTab] = useState("transcript");
-  const [currentEmotion, setCurrentEmotion] = useState('neutral');
+  const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('neutral');
   const [emotionDetectionEnabled, setEmotionDetectionEnabled] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem("gemini-api-key") || "");

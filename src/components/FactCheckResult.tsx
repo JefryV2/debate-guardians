@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { FactCheck } from '@/context/DebateContext';
-import { CheckCircle, XCircle, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import CounterArgumentDisplay from './CounterArgumentDisplay';
 
 interface FactCheckResultProps {
@@ -43,7 +43,7 @@ const FactCheckResult = ({ factCheck }: FactCheckResultProps) => {
   };
 
   const verification = getVerificationLabel();
-  const timestamp = factCheck.timestamp ? new Date(factCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  // Remove references to timestamp which doesn't exist in FactCheck
 
   return (
     <div className="mb-4 bg-white rounded-lg shadow-sm border p-4">
@@ -54,21 +54,12 @@ const FactCheckResult = ({ factCheck }: FactCheckResultProps) => {
             <span className="text-xs font-medium">{verification.text}</span>
           </div>
         </div>
-        {timestamp && (
-          <span className="text-xs text-gray-500">{timestamp}</span>
-        )}
       </div>
 
-      <h3 className="font-medium text-gray-900 mb-2">"{factCheck.claim}"</h3>
+      <h3 className="font-medium text-gray-900 mb-2">"{factCheck.explanation}"</h3>
       
       <p className="text-sm text-gray-700 mb-4">{factCheck.explanation}</p>
       
-      {factCheck.speaker && (
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-          <span>Speaker {factCheck.speaker}</span>
-        </div>
-      )}
-
       {factCheck.source && (
         <div className="flex flex-wrap gap-2 mb-3">
           <a 
