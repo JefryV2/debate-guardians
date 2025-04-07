@@ -5,6 +5,48 @@
 
 @layer base {
   :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142 70% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 100% 75%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 270 100% 63%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 20%;
+    --ring: 142 70% 42%;
+
+    --radius: 0.5rem;
+    
+    /* Sidebar variables */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-primary: 142 70% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 100% 63%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-ring: 270 100% 63%;
+  }
+
+  .light {
     --background: 220 33% 98%;
     --foreground: 224 71% 4%;
 
@@ -14,16 +56,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 262 83% 58%;
+    --primary: 142 70% 42%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 30% 20%;
+    --secondary: 270 70% 58%;
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 14% 46%;
 
-    --accent: 262 83% 58%;
+    --accent: 270 70% 63%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
@@ -31,39 +73,17 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-
-    --radius: 1rem;
-  }
-
-  .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 40% 98%;
-
-    --card: 224 71% 6%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 224 71% 6%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 263 75% 63%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 215 28% 17%;
-    --muted-foreground: 220 14% 76%;
-
-    --accent: 263 75% 63%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 263 75% 63%;
+    --ring: 142 70% 42%;
+    
+    /* Sidebar variables */
+    --sidebar-background: 220 33% 98%;
+    --sidebar-foreground: 224 71% 4%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-primary: 142 70% 42%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 270 70% 63%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 270 70% 63%;
   }
 }
 
@@ -73,42 +93,46 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-background via-background to-purple-50/30 text-foreground min-h-screen;
+    @apply bg-debate-dark text-foreground min-h-screen;
   }
 }
 
 @layer utilities {
   /* New UI utilities */
   .neo-card {
-    @apply bg-white shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-2xl border border-slate-100/80;
+    @apply bg-debate-darker shadow-lg rounded-lg border border-debate-darkHighlight;
   }
   
-  .neo-card-dark {
-    @apply bg-slate-900 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.5)] rounded-2xl border border-slate-800/50;
+  .neo-card-light {
+    @apply bg-white shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-lg border border-slate-100/80;
   }
   
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/50 shadow-[0_8px_32px_rgba(31,38,135,0.1)];
+    @apply bg-debate-darker/80 backdrop-blur-md border border-debate-darkHighlight shadow-lg;
   }
   
-  .glass-card-dark {
-    @apply bg-slate-900/80 backdrop-blur-md border border-slate-800/30 shadow-[0_8px_32px_rgba(0,0,0,0.25)];
+  .spotify-gradient {
+    @apply bg-gradient-to-br from-debate-spotify to-green-500;
   }
   
-  .purple-gradient {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600;
+  .twitch-gradient {
+    @apply bg-gradient-to-br from-debate-twitch to-purple-400;
   }
   
-  .purple-gradient-text {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 text-transparent bg-clip-text;
+  .spotify-btn {
+    @apply bg-debate-spotify hover:bg-debate-spotifyHover text-white font-medium shadow-md hover:shadow-lg transition-all;
   }
   
-  .subtle-gradient {
-    @apply bg-gradient-to-br from-slate-50 to-slate-100;
+  .twitch-btn {
+    @apply bg-debate-twitch hover:bg-debate-twitchHover text-white font-medium shadow-md hover:shadow-lg transition-all;
   }
   
-  .subtle-gradient-dark {
-    @apply bg-gradient-to-br from-slate-900 to-slate-800;
+  .spotify-text {
+    @apply text-debate-spotify;
+  }
+  
+  .twitch-text {
+    @apply text-debate-twitch;
   }
   
   .pulse-slow {
@@ -140,26 +164,26 @@
   
   /* Old utilities we're keeping */
   .debate-shadow {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
   }
   
   .debate-card {
-    @apply bg-gradient-to-br from-white to-slate-50/70 backdrop-blur-sm;
+    @apply bg-debate-darker rounded-lg border border-debate-darkHighlight;
   }
   
   .debate-card-header {
-    @apply bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur-sm border-b;
+    @apply bg-debate-darkHighlight border-b border-gray-800 backdrop-blur-sm;
   }
   
   .debate-btn-primary {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-medium shadow-md hover:shadow-lg transition-all;
+    @apply spotify-btn rounded-full;
   }
   
   .debate-btn-secondary {
-    @apply bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 hover:from-slate-200 hover:to-slate-300 font-medium shadow-sm hover:shadow transition-all;
+    @apply bg-debate-darkHighlight text-white hover:bg-gray-700 font-medium shadow-sm hover:shadow transition-all;
   }
   
   .debate-title-gradient {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 text-transparent bg-clip-text;
+    @apply bg-gradient-to-r from-debate-spotify to-green-400 text-transparent bg-clip-text;
   }
 }
