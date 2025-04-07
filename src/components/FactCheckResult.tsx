@@ -9,97 +9,94 @@ interface FactCheckResultProps {
 }
 
 const FactCheckResult = ({ factCheck }: FactCheckResultProps) => {
-  // Add a safety check at the top to ensure factCheck is defined
   if (!factCheck) {
     return null;
   }
 
-  const getIcon = () => {
+  const getVerificationLabel = () => {
     switch (factCheck.verdict) {
       case 'true':
-        return <CheckCircle className="text-green-500" size={20} />;
+        return {
+          text: 'Verified',
+          className: 'bg-green-100 text-green-800',
+          icon: <CheckCircle className="h-4 w-4 text-green-600" />
+        };
       case 'false':
-        return <XCircle className="text-red-500" size={20} />;
+        return {
+          text: 'False',
+          className: 'bg-red-100 text-red-800',
+          icon: <XCircle className="h-4 w-4 text-red-600" />
+        };
       case 'unverified':
-        return <AlertCircle className="text-yellow-500" size={20} />;
+        return {
+          text: 'Partially True',
+          className: 'bg-amber-100 text-amber-800',
+          icon: <AlertCircle className="h-4 w-4 text-amber-600" />
+        };
       default:
-        return null;
+        return {
+          text: 'Unverified',
+          className: 'bg-gray-100 text-gray-800',
+          icon: <AlertCircle className="h-4 w-4 text-gray-600" />
+        };
     }
   };
 
-  const getVerdictText = () => {
-    switch (factCheck.verdict) {
-      case 'true':
-        return 'True';
-      case 'false':
-        return 'False';
-      case 'unverified':
-        return 'Unverified';
-      default:
-        return 'Unknown';
-    }
-  };
-
-  const getConfidenceColor = () => {
-    if (factCheck.confidenceScore === undefined) return 'text-gray-500';
-    if (factCheck.confidenceScore > 75) return 'text-green-500';
-    if (factCheck.confidenceScore > 50) return 'text-yellow-500';
-    return 'text-red-500';
-  };
+  const verification = getVerificationLabel();
+  const timestamp = factCheck.timestamp ? new Date(factCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <div className="neo-card p-4 mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        {getIcon()}
-        <h3 className="font-semibold text-lg">{getVerdictText()}</h3>
-        {factCheck.confidenceScore !== undefined && (
-          <span className={`text-sm ${getConfidenceColor()}`}>
-            (Confidence: {factCheck.confidenceScore}%)
-          </span>
+    <div className="mb-4 bg-white rounded-lg shadow-sm border p-4">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`${verification.className} rounded-md px-2 py-1 flex items-center gap-1`}>
+            {verification.icon}
+            <span className="text-xs font-medium">{verification.text}</span>
+          </div>
+        </div>
+        {timestamp && (
+          <span className="text-xs text-gray-500">{timestamp}</span>
         )}
       </div>
-      <p className="text-gray-700 mb-2">{factCheck.explanation}</p>
+
+      <h3 className="font-medium text-gray-900 mb-2">"{factCheck.claim}"</h3>
+      
+      <p className="text-sm text-gray-700 mb-4">{factCheck.explanation}</p>
+      
+      {factCheck.speaker && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+          <span>Speaker {factCheck.speaker}</span>
+        </div>
+      )}
+
       {factCheck.source && (
-        <div className="flex items-center gap-1 text-sm text-blue-500 hover:underline">
-          Source:
-          <a href={factCheck.source} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5">
-            {factCheck.source}
-            <ExternalLink size={14} />
+        <div className="flex flex-wrap gap-2 mb-3">
+          <a 
+            href={factCheck.source} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-xs text-purple-600 hover:underline flex items-center gap-1"
+          >
+            {factCheck.source.replace(/^https?:\/\//, '')}
+            <ExternalLink size={12} />
           </a>
         </div>
       )}
+
       {factCheck.alternativePerspectives && factCheck.alternativePerspectives.length > 0 && (
-        <div className="mt-2">
-          <h4 className="text-sm font-medium">Alternative Perspectives:</h4>
-          <ul>
+        <div className="mt-2 text-sm">
+          <h4 className="font-medium mb-1">Alternative Perspectives:</h4>
+          <ul className="text-xs text-gray-600 space-y-1">
             {factCheck.alternativePerspectives.map((perspective, index) => (
-              <li key={index} className="text-gray-600 text-sm">{perspective}</li>
+              <li key={index}>{perspective}</li>
             ))}
           </ul>
         </div>
       )}
-      {factCheck.logicalFallacies && factCheck.logicalFallacies.length > 0 && (
-        <div className="mt-2">
-          <h4 className="text-sm font-medium">Logical Fallacies:</h4>
-          <ul>
-            {factCheck.logicalFallacies.map((fallacy, index) => (
-              <li key={index} className="text-red-600 text-sm">{fallacy}</li>
-            ))}
-          </ul>
-        </div>
+
+      {factCheck.counterArgument && (
+        <CounterArgumentDisplay factCheckId={factCheck.id} />
       )}
-      {factCheck.debunkedStudies && (
-        <div className="mt-2 p-3 rounded-md bg-red-50 border border-red-200 flex items-start gap-2">
-          <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
-          <div>
-            <h4 className="text-sm font-medium text-red-700">Debunked Study Alert:</h4>
-            <p className="text-sm text-red-600">{factCheck.debunkedStudies}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Add counter argument display */}
-      <CounterArgumentDisplay factCheckId={factCheck.id} />
     </div>
   );
 };
