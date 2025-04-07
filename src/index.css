@@ -5,49 +5,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 100%;
-
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 142 70% 42%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 270 100% 75%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 70%;
-
-    --accent: 270 100% 63%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 15%;
-    --input: 0 0% 20%;
-    --ring: 142 70% 42%;
-
-    --radius: 0.5rem;
-    
-    /* Sidebar variables */
-    --sidebar-background: 0 0% 7%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-primary: 142 70% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 100% 63%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-ring: 270 100% 63%;
-  }
-
-  .light {
-    --background: 220 33% 98%;
+    --background: 210 20% 98%;
     --foreground: 224 71% 4%;
 
     --card: 0 0% 100%;
@@ -56,16 +14,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 142 70% 42%;
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 270 70% 58%;
+    --secondary: 35 92% 52%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 14% 46%;
 
-    --accent: 270 70% 63%;
+    --accent: 221 83% 53%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
@@ -73,17 +31,59 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 142 70% 42%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.5rem;
     
     /* Sidebar variables */
-    --sidebar-background: 220 33% 98%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 224 71% 4%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-primary: 142 70% 42%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 270 70% 63%;
+    --sidebar-accent: 221 83% 53%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-ring: 270 70% 63%;
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 35 92% 52%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 19% 67%;
+
+    --accent: 221 83% 53%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 221 83% 53%;
+    
+    /* Sidebar variables */
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 221 83% 53%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 221 83% 53%;
   }
 }
 
@@ -93,46 +93,46 @@
   }
 
   body {
-    @apply bg-debate-dark text-foreground min-h-screen;
+    @apply bg-background text-foreground min-h-screen;
   }
 }
 
 @layer utilities {
-  /* New UI utilities */
-  .neo-card {
-    @apply bg-debate-darker shadow-lg rounded-lg border border-debate-darkHighlight;
+  /* UI utilities */
+  .modern-card {
+    @apply bg-white shadow-md rounded-lg border border-gray-100;
   }
   
-  .neo-card-light {
-    @apply bg-white shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-lg border border-slate-100/80;
+  .modern-card-light {
+    @apply bg-white shadow-sm rounded-lg border border-gray-100;
   }
   
   .glass-card {
-    @apply bg-debate-darker/80 backdrop-blur-md border border-debate-darkHighlight shadow-lg;
+    @apply bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm;
   }
   
-  .spotify-gradient {
-    @apply bg-gradient-to-br from-debate-spotify to-green-500;
+  .primary-gradient {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600;
   }
   
-  .twitch-gradient {
-    @apply bg-gradient-to-br from-debate-twitch to-purple-400;
+  .secondary-gradient {
+    @apply bg-gradient-to-br from-amber-500 to-amber-600;
   }
   
-  .spotify-btn {
-    @apply bg-debate-spotify hover:bg-debate-spotifyHover text-white font-medium shadow-md hover:shadow-lg transition-all;
+  .primary-btn {
+    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-md hover:shadow-lg transition-all;
   }
   
-  .twitch-btn {
-    @apply bg-debate-twitch hover:bg-debate-twitchHover text-white font-medium shadow-md hover:shadow-lg transition-all;
+  .secondary-btn {
+    @apply bg-amber-500 hover:bg-amber-600 text-white font-medium shadow-md hover:shadow-lg transition-all;
   }
   
-  .spotify-text {
-    @apply text-debate-spotify;
+  .primary-text {
+    @apply text-blue-500;
   }
   
-  .twitch-text {
-    @apply text-debate-twitch;
+  .secondary-text {
+    @apply text-amber-500;
   }
   
   .pulse-slow {
@@ -154,36 +154,32 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-10px);
+      transform: translateY(-5px);
     }
   }
   
   .float {
-    animation: float 5s ease-in-out infinite;
+    animation: float 3s ease-in-out infinite;
   }
   
-  /* Old utilities we're keeping */
-  .debate-shadow {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  /* Utility classes */
+  .card-shadow {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   }
   
-  .debate-card {
-    @apply bg-debate-darker rounded-lg border border-debate-darkHighlight;
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-1;
   }
   
-  .debate-card-header {
-    @apply bg-debate-darkHighlight border-b border-gray-800 backdrop-blur-sm;
+  .btn-primary {
+    @apply primary-btn rounded-full;
   }
   
-  .debate-btn-primary {
-    @apply spotify-btn rounded-full;
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-800 hover:bg-gray-200 font-medium shadow-sm hover:shadow transition-all;
   }
   
-  .debate-btn-secondary {
-    @apply bg-debate-darkHighlight text-white hover:bg-gray-700 font-medium shadow-sm hover:shadow transition-all;
-  }
-  
-  .debate-title-gradient {
-    @apply bg-gradient-to-r from-debate-spotify to-green-400 text-transparent bg-clip-text;
+  .title-gradient {
+    @apply bg-gradient-to-r from-blue-500 to-blue-700 text-transparent bg-clip-text;
   }
 }

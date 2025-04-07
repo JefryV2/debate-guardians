@@ -17,18 +17,16 @@ const CounterArgumentDisplay: React.FC<CounterArgumentDisplayProps> = ({ factChe
   }
   
   return (
-    <div className="mt-3 p-4 rounded-xl glass-card animate-fade-in">
+    <div className="mt-3 p-4 rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="flex gap-3 items-start">
-        <div className="bg-debate-twitch bg-opacity-20 p-2 rounded-full flex-shrink-0">
-          <Lightbulb size={16} className="text-debate-twitch" />
+        <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
+          <Lightbulb size={16} className="text-amber-600" />
         </div>
         <div>
-          <h4 className="text-sm font-medium text-white mb-1 flex items-center gap-2">
-            <span className="bg-gradient-to-r from-debate-twitch to-purple-400 bg-clip-text text-transparent">
-              Suggested Counter Argument
-            </span>
+          <h4 className="text-sm font-medium text-gray-800 mb-1">
+            Suggested Counter Argument
           </h4>
-          <p className="text-sm text-gray-300 leading-relaxed">{factCheck.counterArgument}</p>
+          <p className="text-sm text-gray-600 leading-relaxed">{factCheck.counterArgument}</p>
         </div>
       </div>
     </div>

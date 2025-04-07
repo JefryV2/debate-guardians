@@ -8,17 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
-  Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, Angry, 
-  Meh, Info, Shield, UserPlus, UserMinus, Users, Lightbulb, 
-  BarChart2, FileText, GitCompare, Flag, Sparkles
+  Mic, MicOff, Bug, Trash2, Settings, Smile, Frown, 
+  Info, Shield, UserPlus, UserMinus, Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { startSpeechRecognition, EmotionType } from "@/services/speechService";
 import { checkFactAgainstDatabase } from "@/services/factCheckService";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -56,7 +54,7 @@ const DebateRoom = () => {
   useEffect(() => {
     setSpeakerNames(speakers.map(s => s.name));
   }, [speakers]);
-
+  
   const saveApiKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem("gemini-api-key", apiKey.trim());
@@ -112,19 +110,13 @@ const DebateRoom = () => {
   const getEmotionIcon = (emotion: EmotionType) => {
     switch (emotion) {
       case 'angry':
-        return <Angry className="text-red-500" />;
+        return <Frown className="text-red-500" />;
       case 'happy':
         return <Smile className="text-green-500" />;
       case 'sad':
         return <Frown className="text-blue-500" />;
-      case 'excited':
-        return <Smile className="text-yellow-500" />;
-      case 'frustrated':
-        return <Angry className="text-orange-500" />;
-      case 'uncertain':
-        return <Meh className="text-purple-500" />;
       default:
-        return <Meh className="text-gray-500" />;
+        return <Smile className="text-gray-500" />;
     }
   };
 
@@ -194,30 +186,27 @@ const DebateRoom = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-screen-xl mx-auto">
-        <Card className="mb-6 neo-card border-0 overflow-hidden">
-          <CardHeader className="pb-4 border-b bg-gradient-to-r from-purple-50 to-indigo-50">
+    <div className="container mx-auto py-6">
+      <div className="max-w-7xl mx-auto">
+        <Card className="shadow-md border-0 overflow-hidden bg-white">
+          <CardHeader className="border-b bg-gray-50 px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle className="text-3xl font-bold purple-gradient-text">
-                  Debate Guardians
+                <CardTitle className="text-2xl font-bold text-gray-800">
+                  Debate Guardian
                 </CardTitle>
-                <CardDescription className="text-slate-600">
-                  {aiEnabled ? "Gemini AI-powered fact-checking" : "AI-powered fact-checking"} for more honest debates
-                </CardDescription>
+                <p className="text-sm text-gray-500">
+                  AI-powered fact-checking for more honest debates
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   onClick={() => setApiKeyDialogOpen(true)}
                   variant="outline"
                   size="sm"
-                  className={cn(
-                    "border-slate-200 flex items-center gap-1 rounded-full", 
-                    aiEnabled ? "text-violet-600" : ""
-                  )}
+                  className="border-gray-200 rounded-full"
                 >
-                  <Shield className="h-4 w-4" />
+                  <Shield className="h-4 w-4 mr-1" />
                   {aiEnabled ? "AI Enabled" : "Setup AI"}
                 </Button>
                 
@@ -226,112 +215,48 @@ const DebateRoom = () => {
                     id="emotion-detection" 
                     checked={emotionDetectionEnabled}
                     onCheckedChange={setEmotionDetectionEnabled}
-                    className="data-[state=checked]:bg-violet-600"
                   />
-                  <Label htmlFor="emotion-detection" className="flex items-center gap-1 text-sm">
-                    {getEmotionIcon(currentEmotion)}
-                    Emotion
-                  </Label>
+                  <Label htmlFor="emotion-detection" className="text-sm">Emotion</Label>
                 </div>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="border-slate-200 flex items-center gap-1 rounded-full">
-                      <Sparkles className="h-4 w-4" />
-                      Features
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-60 neo-card border-0">
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-sm">Analysis Features</h4>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="continuous-analysis" 
-                          checked={continuousAnalysisMode}
-                          onCheckedChange={setContinuousAnalysisMode}
-                          className="data-[state=checked]:bg-violet-600"
-                        />
-                        <Label htmlFor="continuous-analysis" className="text-sm flex items-center gap-1">
-                          <GitCompare className="h-3 w-3" />
-                          Continuous Analysis
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="fallacy-detection" 
-                          checked={fallacyDetectionEnabled}
-                          onCheckedChange={setFallacyDetectionEnabled}
-                          className="data-[state=checked]:bg-violet-600"
-                        />
-                        <Label htmlFor="fallacy-detection" className="text-sm flex items-center gap-1">
-                          <Lightbulb className="h-3 w-3" />
-                          Fallacy Detection
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="knowledge-gap-detection" 
-                          checked={knowledgeGapDetectionEnabled}
-                          onCheckedChange={setKnowledgeGapDetectionEnabled}
-                          className="data-[state=checked]:bg-violet-600"
-                        />
-                        <Label htmlFor="knowledge-gap-detection" className="text-sm flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          Knowledge Gap Detection
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="debug-mode" 
-                          checked={debugMode}
-                          onCheckedChange={setDebugMode}
-                          className="data-[state=checked]:bg-violet-600"
-                        />
-                        <Label htmlFor="debug-mode" className="text-sm flex items-center gap-1">
-                          <Bug className="h-3 w-3" />
-                          Debug Mode
-                        </Label>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
                 
                 <Button
                   onClick={() => clearTranscript()}
                   variant="outline"
                   size="icon"
                   title="Clear transcript"
-                  className="border-slate-200 rounded-full"
+                  className="border-gray-200 rounded-full h-8 w-8"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+                
                 <Button
                   onClick={() => setIsEditingSpeakers(!isEditingSpeakers)}
                   variant="outline"
                   size="icon"
                   title="Edit speakers"
                   className={cn(
-                    "border-slate-200 rounded-full",
-                    isEditingSpeakers && "bg-muted"
+                    "border-gray-200 rounded-full h-8 w-8",
+                    isEditingSpeakers && "bg-gray-100"
                   )}
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
+                
                 <Button
                   onClick={toggleMicrophone}
                   variant={activeListener ? "destructive" : "default"}
-                  className="flex items-center gap-2 shadow-md rounded-full"
+                  className="rounded-full"
                   disabled={isEditingSpeakers}
                   size="sm"
                 >
                   {activeListener ? (
                     <>
-                      <MicOff className="h-4 w-4" />
-                      Stop Listening
+                      <MicOff className="h-4 w-4 mr-1" />
+                      Stop
                     </>
                   ) : (
                     <>
-                      <Mic className="h-4 w-4" />
+                      <Mic className="h-4 w-4 mr-1" />
                       Start Listening
                     </>
                   )}
@@ -340,31 +265,30 @@ const DebateRoom = () => {
             </div>
           </CardHeader>
           
-          <CardContent className="px-4 py-6">
+          <CardContent className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1">
                 <Tabs defaultValue="speakers" className="w-full">
-                  <TabsList className="w-full mb-4 bg-slate-100 p-1 rounded-lg">
+                  <TabsList className="w-full mb-4 bg-gray-100 p-1 rounded-lg">
                     <TabsTrigger 
                       value="speakers" 
-                      className="flex items-center gap-1 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                     >
-                      <Users className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Speakers</span>
+                      <Users className="h-4 w-4 mr-1" />
+                      Speakers
                     </TabsTrigger>
                     <TabsTrigger 
                       value="stats" 
-                      className="flex items-center gap-1 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                     >
-                      <BarChart2 className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Stats</span>
+                      <Info className="h-4 w-4 mr-1" />
+                      Stats
                     </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="speakers">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2">
-                        <Users className="h-4 w-4" />
+                      <h3 className="text-lg font-medium text-gray-700">
                         Speakers ({speakers.length})
                       </h3>
                       {!isEditingSpeakers && !activeListener && (
@@ -372,21 +296,21 @@ const DebateRoom = () => {
                           onClick={addSpeaker} 
                           variant="outline" 
                           size="sm"
-                          className="text-xs flex gap-1 items-center rounded-full"
+                          className="text-xs rounded-full"
                         >
-                          <UserPlus className="h-3 w-3" />
+                          <UserPlus className="h-3 w-3 mr-1" />
                           Add
                         </Button>
                       )}
                     </div>
 
                     {isEditingSpeakers ? (
-                      <div className="space-y-4 bg-white p-4 rounded-xl shadow-sm">
+                      <div className="space-y-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         {speakers.map((speaker, i) => (
                           <div key={speaker.id} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <label htmlFor={`speaker-${i}`} className="text-sm font-medium block">
-                                Speaker {i + 1} Name:
+                                Speaker {i + 1}
                               </label>
                               {speakers.length > 2 && (
                                 <Button 
@@ -404,7 +328,7 @@ const DebateRoom = () => {
                               value={speakerNames[i]}
                               onChange={(e) => handleSpeakerNameChange(i, e.target.value)}
                               placeholder={`Speaker ${i + 1}`}
-                              className="border-slate-200 rounded-lg"
+                              className="border-gray-200 rounded-lg"
                             />
                           </div>
                         ))}
@@ -413,17 +337,16 @@ const DebateRoom = () => {
                             onClick={addSpeaker}
                             variant="outline"
                             size="sm"
-                            className="text-xs flex gap-1 items-center rounded-full"
+                            className="text-xs rounded-full"
                             disabled={speakers.length >= 8}
                           >
-                            <UserPlus className="h-3 w-3" />
+                            <UserPlus className="h-3 w-3 mr-1" />
                             Add Speaker
                           </Button>
-                          <div className="flex items-center">
+                          <div className="flex items-center gap-2">
                             <Button 
                               onClick={() => setIsEditingSpeakers(false)} 
                               variant="ghost" 
-                              className="mr-2"
                               size="sm"
                             >
                               Cancel
@@ -431,7 +354,7 @@ const DebateRoom = () => {
                             <Button 
                               onClick={saveSpeakerChanges} 
                               size="sm"
-                              className="purple-gradient rounded-full"
+                              className="rounded-full"
                             >
                               Save
                             </Button>
@@ -466,8 +389,7 @@ const DebateRoom = () => {
                   </TabsContent>
                   
                   <TabsContent value="stats">
-                    <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2 mb-3">
-                      <BarChart2 className="h-4 w-4" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-3">
                       Speaker Stats
                     </h3>
                     <div className="space-y-4">
@@ -477,66 +399,64 @@ const DebateRoom = () => {
                     </div>
                   </TabsContent>
                 </Tabs>
+                
+                <div className="mt-6">
+                  <ToleranceSlider />
+                </div>
               </div>
               
               <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <TranscriptDisplay />
                   <div>
-                    <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2 mb-3">
-                      <BarChart2 className="h-4 w-4" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-3">
                       Fact Check Results
                     </h3>
-                    {factChecks.map(factCheck => (
-                      <FactCheckResult key={factCheck.id} factCheck={factCheck} />
-                    ))}
-                    {factChecks.length === 0 && (
-                      <div className="text-center p-8 text-slate-500">
-                        No fact checks yet. Start speaking to generate some claims!
-                      </div>
-                    )}
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                      {factChecks.map(factCheck => (
+                        <FactCheckResult key={factCheck.id} factCheck={factCheck} />
+                      ))}
+                      {factChecks.length === 0 && (
+                        <div className="text-center p-8 text-gray-400">
+                          No fact checks yet. Start speaking to generate some claims!
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </CardContent>
-          
-          <CardFooter className="flex justify-between text-sm text-muted-foreground pt-2 pb-4 border-t">
-            <p>Debate Guardians v2.0</p>
-            <p>Using {aiEnabled ? "Gemini AI" : "Web Speech API"} & Advanced Fact-Checking</p>
-          </CardFooter>
         </Card>
         
-        <Card className="p-5 neo-card border-0 bg-gradient-to-br from-purple-50 to-indigo-50 shadow-md">
+        <Card className="mt-6 border-0 shadow-md bg-blue-50 p-5">
           <div className="flex items-start">
-            <div className="bg-violet-100 p-2 rounded-full mr-3">
-              <Info className="h-5 w-5 text-violet-600" />
+            <div className="bg-blue-100 p-2 rounded-full mr-3">
+              <Info className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-medium text-slate-800 mb-2">Using the Debate Guardian</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-700">
+              <h3 className="font-medium text-gray-800 mb-2">Using the Debate Guardian</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-600">
                 <div>
-                  <p className="mb-2 font-medium text-slate-900">Getting Started:</p>
+                  <p className="mb-2 font-medium text-gray-800">Getting Started:</p>
                   <ol className="list-decimal pl-5 space-y-1">
-                    <li>Click "Setup AI" to add your Gemini API key</li>
+                    <li>Click "Setup AI" to add your API key</li>
                     <li>Select a speaker by clicking their card</li>
                     <li>Click "Start Listening" and begin speaking</li>
                     <li>Make claims to see them fact-checked in real-time</li>
-                    <li><strong>NEW:</strong> Manually mark entries as claims with the flag button</li>
+                    <li>Manually mark entries as claims with the flag button</li>
                   </ol>
                 </div>
                 
                 <div>
-                  <p className="mb-2 font-medium text-slate-900">Advanced Features:</p>
+                  <p className="mb-2 font-medium text-gray-800">Advanced Features:</p>
                   <ul className="list-disc pl-5 space-y-1">
-                    <li><strong>NEW:</strong> Continuous analysis mode for multi-sentence claims</li>
-                    <li><strong>NEW:</strong> Manual claim highlighting for missed claims</li>
-                    <li>Logical fallacy detection with automatic warnings</li>
+                    <li>Continuous analysis for multi-sentence claims</li>
+                    <li>Manual claim highlighting for missed claims</li>
+                    <li>Logical fallacy detection with warnings</li>
                     <li>Speech rate monitoring to detect fast talking</li>
                     <li>Topic classification for claims</li>
-                    <li>Knowledge gap identification for uncertain topics</li>
-                    <li>Historical claim tracking for speakers</li>
-                    <li>Confidence ratings for all fact-checks</li>
+                    <li>Knowledge gap identification</li>
                   </ul>
                 </div>
               </div>
@@ -546,24 +466,24 @@ const DebateRoom = () => {
       </div>
       
       <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
-        <DialogContent className="sm:max-w-md neo-card border-0">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Set up Gemini AI Integration</DialogTitle>
+            <DialogTitle>Set up AI Integration</DialogTitle>
             <DialogDescription>
-              Enter your Google Gemini API key to enable advanced AI-powered fact-checking.
+              Enter your API key to enable advanced AI-powered fact-checking.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="gemini-api-key">Gemini API Key</Label>
+              <Label htmlFor="api-key">API Key</Label>
               <Input 
-                id="gemini-api-key" 
+                id="api-key" 
                 value={apiKey} 
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key"
-                className="col-span-3 border-slate-200"
+                className="col-span-3"
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-500">
                 Your API key is stored locally in your browser and never sent to our servers.
               </p>
             </div>
@@ -573,7 +493,6 @@ const DebateRoom = () => {
             <Button 
               type="submit" 
               onClick={saveApiKey}
-              className="purple-gradient"
             >
               Save API Key
             </Button>
