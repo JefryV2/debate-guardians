@@ -62,3 +62,65 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Spotify/Twitch inspired animations */
+@keyframes spotifyPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(29, 185, 84, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(29, 185, 84, 0.8);
+  }
+}
+
+@keyframes twitchPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(145, 70, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(145, 70, 255, 0.8);
+  }
+}
+
+.spotify-pulse {
+  animation: spotifyPulse 2s infinite;
+}
+
+.twitch-pulse {
+  animation: twitchPulse 2s infinite;
+}
+
+/* Custom card styles */
+.neo-card {
+  background: #181818;
+  border-radius: 8px;
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+}
+
+.neo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.purple-gradient {
+  background: linear-gradient(45deg, #9146FF, #6441A4);
+}
+
+.green-gradient {
+  background: linear-gradient(45deg, #1DB954, #1ED760);
+}
+
+.purple-gradient-text {
+  background: linear-gradient(45deg, #9146FF, #6441A4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.green-gradient-text {
+  background: linear-gradient(45deg, #1DB954, #1ED760);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
