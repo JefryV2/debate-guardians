@@ -54,11 +54,11 @@ const ToleranceSlider = () => {
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 cursor-help">
                 <Info className="h-3 w-3" />
-                <span>Updated credibility scoring</span>
+                <span>Balanced credibility scoring</span>
               </div>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
-              <p className="text-xs">Unverified claims now receive more balanced credibility scores. Claims with debunked studies or logical fallacies receive appropriate penalties.</p>
+              <p className="text-xs">Claims requiring verification receive balanced scores. Claims with debunked studies or logical fallacies receive appropriate penalties.</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
