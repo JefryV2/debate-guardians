@@ -2,7 +2,8 @@
 import React from 'react';
 import { Slider } from "@/components/ui/slider";
 import { useDebate } from '@/context/DebateContext';
-import { Shield } from 'lucide-react';
+import { Shield, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ToleranceSlider = () => {
   const { toleranceLevel, setToleranceLevel } = useDebate();
@@ -18,6 +19,18 @@ const ToleranceSlider = () => {
       <div className="flex items-center gap-2 mb-2">
         <Shield className="h-4 w-4 text-purple-600" />
         <span className="text-sm font-medium">Fact-Check Tolerance</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="inline-flex">
+                <HelpCircle className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="text-xs">Adjusts how strictly claims are matched. Higher tolerance allows for more variation in numbers and phrasing.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <span className="ml-auto text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full font-medium">
           {getLevelLabel()}
         </span>

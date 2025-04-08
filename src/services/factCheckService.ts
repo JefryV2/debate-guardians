@@ -27,14 +27,28 @@ export const checkFactAgainstDatabase = async (claim: Claim) => {
   return await geminiFactCheck(claim);
 };
 
-// Local database check (kept as fallback)
+// Local database check (kept as fallback) - fixed to prevent cross-claim matching
 const checkAgainstLocalDatabase = (claim: Claim) => {
   const claimText = claim.text.toLowerCase();
   const toleranceLevel = getToleranceLevel();
   
+  // Create a unique identifier for this claim to prevent cross-matching
+  const claimId = claim.id;
+  
+  // Add claim context tracking to prevent cross-claim matching
+  const claimContext = extractTopicContext(claimText);
+  
   for (const myth of commonMyths) {
-    // Apply tolerance to numeric claims
-    if (doesClaimMatchWithTolerance(claimText, myth.claim.toLowerCase(), toleranceLevel)) {
+    const mythText = myth.claim.toLowerCase();
+    const mythContext = extractTopicContext(mythText);
+    
+    // Only match if contexts are compatible - prevents COVID claims matching with unrelated topics
+    if (!areContextsCompatible(claimContext, mythContext)) {
+      continue;
+    }
+    
+    // Apply tolerance to numeric claims with added context verification
+    if (doesClaimMatchWithTolerance(claimText, mythText, toleranceLevel)) {
       return {
         claimId: claim.id,
         verdict: myth.verdict as 'true' | 'false' | 'unverified',
@@ -55,10 +69,59 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
   return null;
 };
 
+// Extract topic context from text to prevent cross-topic matching
+const extractTopicContext = (text: string): string[] => {
+  const contexts: string[] = [];
+  
+  // Define context categories
+  const contextMap: Record<string, string[]> = {
+    'covid': ['covid', 'coronavirus', 'pandemic', 'lockdown', 'mask', 'vaccine', 'pfizer', 'moderna'],
+    'climate': ['climate', 'global warming', 'carbon', 'emissions', 'temperature'],
+    'politics': ['election', 'democracy', 'republican', 'democrat', 'president', 'vote'],
+    'health': ['health', 'medicine', 'treatment', 'disease', 'doctor', 'patient'],
+    'science': ['science', 'research', 'study', 'scientist', 'experiment', 'data']
+  };
+  
+  // Check which contexts apply to this text
+  for (const [context, keywords] of Object.entries(contextMap)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      contexts.push(context);
+    }
+  }
+  
+  return contexts;
+};
+
+// Check if contexts are compatible to avoid cross-topic matching
+const areContextsCompatible = (context1: string[], context2: string[]): boolean => {
+  // If either has no specific context, they can match with anything
+  if (context1.length === 0 || context2.length === 0) {
+    return true;
+  }
+  
+  // Must have at least one context in common
+  return context1.some(c => context2.includes(c));
+};
+
 // New function to check if claims match with tolerance for numeric values
 const doesClaimMatchWithTolerance = (claim1: string, claim2: string, tolerancePercent: number): boolean => {
-  // Exact match check
+  // Exact match check with improved partial matching
   if (claim1.includes(claim2) || claim2.includes(claim1)) {
+    return true;
+  }
+  
+  // Extract key phrases (2-5 word sequences) and check for matches
+  const claim1Phrases = extractKeyPhrases(claim1);
+  const claim2Phrases = extractKeyPhrases(claim2);
+  
+  // Calculate phrase overlap percentage
+  const matchingPhrases = claim1Phrases.filter(phrase => 
+    claim2Phrases.some(p2 => p2.includes(phrase) || phrase.includes(p2))
+  );
+  
+  // If there's a significant phrase overlap (adjusted threshold)
+  if (matchingPhrases.length > 0 && 
+      matchingPhrases.length / Math.min(claim1Phrases.length, claim2Phrases.length) > 0.25) {
     return true;
   }
   
@@ -75,12 +138,68 @@ const doesClaimMatchWithTolerance = (claim1: string, claim2: string, tolerancePe
     for (const num2 of numbers2) {
       const tolerance = (num2 * tolerancePercent) / 100;
       if (Math.abs(num1 - num2) <= tolerance) {
-        return true;
+        // Only return true if the surrounding context is similar
+        const num1Context = getNumberContext(claim1, num1);
+        const num2Context = getNumberContext(claim2, num2);
+        
+        if (areContextsSimilar(num1Context, num2Context)) {
+          return true;
+        }
       }
     }
   }
   
   return false;
+};
+
+// Extract key phrases to improve matching
+const extractKeyPhrases = (text: string): string[] => {
+  const words = text.toLowerCase().split(/\s+/);
+  const phrases: string[] = [];
+  
+  // Extract 2-3 word phrases
+  for (let i = 0; i < words.length - 1; i++) {
+    phrases.push(`${words[i]} ${words[i+1]}`);
+    if (i < words.length - 2) {
+      phrases.push(`${words[i]} ${words[i+1]} ${words[i+2]}`);
+    }
+  }
+  
+  return phrases;
+};
+
+// Get context around a number for more accurate matching
+const getNumberContext = (text: string, number: number): string => {
+  const numberStr = number.toString();
+  const index = text.indexOf(numberStr);
+  if (index === -1) return "";
+  
+  // Get 3 words before and after the number
+  const words = text.split(/\s+/);
+  const numberWordIndex = words.findIndex(word => word.includes(numberStr));
+  
+  if (numberWordIndex === -1) return "";
+  
+  const startIndex = Math.max(0, numberWordIndex - 3);
+  const endIndex = Math.min(words.length - 1, numberWordIndex + 3);
+  
+  return words.slice(startIndex, endIndex + 1).join(' ');
+};
+
+// Check if number contexts are similar enough for a match
+const areContextsSimilar = (context1: string, context2: string): boolean => {
+  if (!context1 || !context2) return false;
+  
+  const words1 = new Set(context1.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const words2 = new Set(context2.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  
+  let matchCount = 0;
+  for (const word of words1) {
+    if (words2.has(word)) matchCount++;
+  }
+  
+  // Need at least one significant word in common besides the number itself
+  return matchCount > 0;
 };
 
 // Extract numeric values from text

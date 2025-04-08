@@ -8,13 +8,17 @@ interface CounterArgumentDisplayProps {
 }
 
 const CounterArgumentDisplay: React.FC<CounterArgumentDisplayProps> = ({ factCheckId }) => {
-  const { factChecks } = useDebate();
+  const { factChecks, claims } = useDebate();
   const factCheck = factChecks.find(fc => fc.id === factCheckId);
   
   // Only render when factCheck exists and has a counterArgument
-  if (!factCheck || !factCheck.counterArgument) {
+  if (!factCheck || !factCheck.counterArgument || factCheck.counterArgument.trim() === '') {
     return null;
   }
+  
+  // Get the associated claim to provide better context
+  const claim = claims.find(c => c.id === factCheck.claimId);
+  const claimTopic = claim?.topic;
   
   return (
     <div className="mt-3 p-3 rounded-md bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200">
@@ -24,7 +28,7 @@ const CounterArgumentDisplay: React.FC<CounterArgumentDisplayProps> = ({ factChe
         </div>
         <div>
           <h4 className="text-xs font-medium text-purple-800">
-            Suggested Counter Argument
+            Suggested Counter Argument {claimTopic && `(${claimTopic})`}
           </h4>
           <p className="text-xs text-purple-700 leading-relaxed mt-1">{factCheck.counterArgument}</p>
         </div>
