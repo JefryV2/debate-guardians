@@ -1,3 +1,4 @@
+
 import { Claim } from "@/context/DebateContext";
 import { commonMyths } from "@/data/commonMyths";
 
@@ -73,13 +74,24 @@ const checkAgainstLocalDatabase = (claim: Claim) => {
 const extractTopicContext = (text: string): string[] => {
   const contexts: string[] = [];
   
-  // Define context categories
+  // Define context categories - expanded with more keywords
   const contextMap: Record<string, string[]> = {
-    'covid': ['covid', 'coronavirus', 'pandemic', 'lockdown', 'mask', 'vaccine', 'pfizer', 'moderna'],
-    'climate': ['climate', 'global warming', 'carbon', 'emissions', 'temperature'],
-    'politics': ['election', 'democracy', 'republican', 'democrat', 'president', 'vote'],
-    'health': ['health', 'medicine', 'treatment', 'disease', 'doctor', 'patient'],
-    'science': ['science', 'research', 'study', 'scientist', 'experiment', 'data']
+    'covid': ['covid', 'coronavirus', 'pandemic', 'lockdown', 'mask', 'vaccine', 'pfizer', 'moderna', 
+              'social distancing', 'quarantine', 'pcr', 'wuhan', 'delta', 'omicron', 'sars-cov-2'],
+    'climate': ['climate', 'global warming', 'carbon', 'emissions', 'temperature', 'greenhouse', 
+               'renewable', 'fossil fuel', 'sea level', 'ice cap', 'climate change', 'sustainability'],
+    'politics': ['election', 'democracy', 'republican', 'democrat', 'president', 'vote', 'congress', 
+                'senate', 'legislation', 'parliament', 'political', 'government', 'policy'],
+    'health': ['health', 'medicine', 'treatment', 'disease', 'doctor', 'patient', 'hospital', 'cure',
+              'symptom', 'diagnosis', 'pharmaceutical', 'immune', 'nutrition', 'obesity'],
+    'science': ['science', 'research', 'study', 'scientist', 'experiment', 'data', 'theory', 'hypothesis',
+               'laboratory', 'peer review', 'publication', 'journal', 'evidence', 'empirical'],
+    'economics': ['economy', 'inflation', 'market', 'investment', 'stock', 'recession', 'gdp', 'trade',
+                 'unemployment', 'federal reserve', 'fiscal', 'monetary', 'economic growth'],
+    'education': ['education', 'school', 'student', 'teacher', 'classroom', 'curriculum', 'university',
+                 'college', 'degree', 'learning', 'academic', 'educational', 'pedagogy'],
+    'technology': ['technology', 'computer', 'internet', 'digital', 'ai', 'artificial intelligence',
+                  'algorithm', 'software', 'hardware', 'tech', 'innovation', 'automation']
   };
   
   // Check which contexts apply to this text
@@ -257,15 +269,15 @@ const generateCounterArgument = (claimText: string, factCheck: {
       ? `This claim is not supported by evidence. ${factCheck.explanation} A more accurate position would acknowledge these facts.`
       : "This claim contradicts established evidence. We should base our arguments on verified information rather than misconceptions.";
   }
-  // For unverified claims
+  // For unverified claims - modified to be less harsh
   else if (factCheck.verdict === 'unverified') {
-    counterArgument = "This claim lacks sufficient evidence. We should acknowledge the uncertainty and avoid presenting it as established fact until more research is available.";
+    counterArgument = "This claim requires further verification. While it's not necessarily false, additional research or context would help evaluate its accuracy.";
   }
   
   return counterArgument;
 };
 
-// Gemini AI-powered fact checking function
+// Gemini AI-powered fact checking function - enhanced for better study detection
 const geminiFactCheck = async (claim: Claim) => {
   const claimText = claim.text;
   const topic = claim.topic || 'unknown';
@@ -282,7 +294,7 @@ const geminiFactCheck = async (claim: Claim) => {
       return fallbackFactCheck(claim);
     }
     
-    // Enhanced prompt for Gemini - now includes counter argument generation
+    // Enhanced prompt for Gemini - improved for better study/research assessment
     const prompt = `
       Act as a professional fact-checker with expertise in ${topic}. Analyze this claim:
       
@@ -291,13 +303,13 @@ const geminiFactCheck = async (claim: Claim) => {
       Consider a tolerance level of ${toleranceLevel}% for numerical claims (e.g., if the claim mentions 80% but the actual figure is between ${80 - toleranceLevel}% and ${80 + toleranceLevel}%, consider it accurate enough).
       
       For your response, provide:
-      1. Verdict: ONLY "true", "false", or "unverified"
+      1. Verdict: ONLY "true", "false", or "unverified" (use "unverified" when claim needs further verification rather than being outright false)
       2. Explanation: Brief factual explanation supporting your verdict (2-3 sentences)
       3. Source: Relevant source or reference for the information
       4. Confidence: A number from 0-100 indicating your confidence level
       5. Knowledge Gaps: Mention any areas where scientific consensus is limited
       6. Alternative Perspective: A brief alternative viewpoint, if relevant
-      7. Study Validity: If a specific study is mentioned, analyze if it has been debunked, retracted, or criticized by the scientific community
+      7. Study Validity: If a specific study is mentioned, thoroughly analyze if it has been debunked, retracted, criticized by the scientific community, or has methodological issues
       8. Logical Fallacies: Identify any logical fallacies in the claim (e.g., correlation-causation errors, appeal to authority, cherry picking)
       9. Counter Argument: If the claim is false or contains fallacies, provide a constructive counter argument that could be used in a debate (2-3 sentences)
       
@@ -415,10 +427,10 @@ const geminiFactCheck = async (claim: Claim) => {
     // Fallback to local detection if Gemini didn't identify logical fallacies
     const logicalFallacies = parsedResponse.logicalFallacies || detectLogicalFallacies(claim.text);
     
-    // Ensure debunked studies are identified
+    // Ensure debunked studies are identified - using enhanced detection
     const debunkedStudies = parsedResponse.debunkedStudies || detectDebunkedStudies(claim.text);
     
-    // Generate counter argument if Gemini didn't provide one
+    // Generate counter argument if Gemini didn't provide one - using less harsh language for unverified claims
     const counterArgument = parsedResponse.counterArgument || 
       ((normalizedVerdict === 'false' || logicalFallacies.length > 0) ? 
         generateCounterArgument(claim.text, {
@@ -428,12 +440,16 @@ const geminiFactCheck = async (claim: Claim) => {
         }) : 
         undefined);
     
+    // Calculate adjusted confidence score based on verdict
+    const confidenceScore = parsedResponse.confidence || 
+      generateConfidenceScore(normalizedVerdict, !!debunkedStudies, logicalFallacies.length > 0);
+    
     return {
       claimId: claim.id,
       verdict: normalizedVerdict,
       source: parsedResponse.source || "Google Gemini 2.0 Flash",
       explanation: parsedResponse.explanation || "This claim has been analyzed by AI.",
-      confidenceScore: parsedResponse.confidence || generateConfidenceScore(normalizedVerdict),
+      confidenceScore,
       alternativePerspectives,
       logicalFallacies: logicalFallacies.length > 0 ? logicalFallacies : undefined,
       debunkedStudies: debunkedStudies ? debunkedStudies : undefined,
@@ -503,7 +519,7 @@ const fallbackFactCheck = async (claim: Claim) => {
     verdict: 'unverified' as const,
     source: "Fallback fact checker",
     explanation: "Unable to verify this claim. (AI service unavailable, using fallback)",
-    confidenceScore: 40,
+    confidenceScore: 50, // Increased from 40 to be less penalizing
     logicalFallacies,
     debunkedStudies: detectDebunkedStudies(claim.text),
     counterArgument: logicalFallacies.length > 0 ? 
@@ -512,7 +528,7 @@ const fallbackFactCheck = async (claim: Claim) => {
   };
 };
 
-// Enhanced logical fallacy detection
+// Enhanced logical fallacy detection with more comprehensive patterns
 const detectLogicalFallacies = (text: string): string[] => {
   const lowerText = text.toLowerCase();
   const detectedFallacies: string[] = [];
@@ -600,18 +616,18 @@ const detectLogicalFallacies = (text: string): string[] => {
   return detectedFallacies;
 };
 
-// New function to detect debunked or problematic studies
+// Enhanced function to detect debunked or problematic studies with more comprehensive database
 const detectDebunkedStudies = (text: string): string | undefined => {
   const lowerText = text.toLowerCase();
   
-  // Database of known debunked/retracted studies
+  // Expanded database of known debunked/retracted studies with more context
   const debunkedStudies = [
     {
       keywords: ['wakefield', 'mmr', 'autism', 'vaccine'],
       explanation: "The 1998 Andrew Wakefield study claiming a link between MMR vaccines and autism was retracted due to ethical violations and methodological problems. Multiple subsequent studies found no link between vaccines and autism."
     },
     {
-      keywords: ['stanford prison experiment'],
+      keywords: ['stanford prison experiment', 'zimbardo'],
       explanation: "The Stanford Prison Experiment has been criticized for experimenter bias, lack of scientific controls, and coaching of participants. Many of its conclusions about human behavior are now considered unreliable."
     },
     {
@@ -619,23 +635,23 @@ const detectDebunkedStudies = (text: string): string | undefined => {
       explanation: "The Elgazzar study on ivermectin for COVID-19 was withdrawn due to ethical concerns and suspected data manipulation. Subsequent meta-analyses excluding this study showed no significant benefit."
     },
     {
-      keywords: ['bem', 'precognition', 'feeling the future'],
+      keywords: ['bem', 'precognition', 'feeling the future', 'esp'],
       explanation: "Daryl Bem's 2011 study on precognition ('Feeling the Future') failed multiple replication attempts and is considered an example of p-hacking and methodological problems in psychological research."
     },
     {
-      keywords: ['power pose', 'cuddy'],
+      keywords: ['power pose', 'cuddy', 'body language'],
       explanation: "The 'power pose' study by Amy Cuddy has failed replication attempts. The original finding that posture affects hormone levels and behavior is now considered overstated."
     },
     {
-      keywords: ['reinhart', 'rogoff', 'growth', 'debt'],
+      keywords: ['reinhart', 'rogoff', 'growth', 'debt', 'excel'],
       explanation: "The Reinhart-Rogoff study claiming high debt causes low economic growth contained spreadsheet errors and methodological issues. Reanalysis showed the relationship was much weaker than claimed."
     },
     {
-      keywords: ['hydroxychloroquine', 'covid', 'raoult'],
+      keywords: ['hydroxychloroquine', 'covid', 'raoult', 'hcq'],
       explanation: "Early studies by Didier Raoult on hydroxychloroquine for COVID-19 had serious methodological flaws. Larger, controlled studies found no benefit and potential harms."
     },
     {
-      keywords: ['diets', 'saturated fat', 'ancel keys', 'seven countries'],
+      keywords: ['diets', 'saturated fat', 'ancel keys', 'seven countries', 'heart disease'],
       explanation: "Ancel Keys' 'Seven Countries Study' on saturated fat has been criticized for cherry-picking countries that fit the hypothesis. Modern nutritional science shows a more complex relationship between fats and health."
     },
     {
@@ -643,8 +659,32 @@ const detectDebunkedStudies = (text: string): string | undefined => {
       explanation: "Studies claiming thimerosal in vaccines causes autism have been debunked. Multiple large epidemiological studies found no link, and thimerosal has been removed from childhood vaccines since 2001 with no effect on autism rates."
     },
     {
-      keywords: ['gmo', 'séralini', 'rats', 'cancer'],
+      keywords: ['gmo', 'séralini', 'rats', 'cancer', 'monsanto'],
       explanation: "The Séralini study claiming GMOs caused tumors in rats was retracted due to small sample sizes and inappropriate statistical methods. The European Food Safety Authority and other organizations found numerous flaws in the research."
+    },
+    {
+      keywords: ['wansink', 'food', 'behavior', 'cornell'],
+      explanation: "Brian Wansink's food behavior studies at Cornell were found to contain numerous statistical inconsistencies and p-hacking. Multiple papers were retracted due to manipulation of data and questionable research practices."
+    },
+    {
+      keywords: ['bem-lommel', 'near-death', 'consciousness', 'afterlife'],
+      explanation: "The Pim van Lommel study on near-death experiences has methodological limitations and makes claims beyond what the data supports regarding consciousness existing independently of the brain."
+    },
+    {
+      keywords: ['lsd', 'chromosome', 'dna damage'],
+      explanation: "Studies from the 1960s claiming LSD damages chromosomes were methodologically flawed and could not be replicated. Later research did not find evidence of DNA damage at typical doses."
+    },
+    {
+      keywords: ['facilitated communication', 'autism', 'typing'],
+      explanation: "Studies on facilitated communication for non-verbal individuals claimed to enable communication, but controlled studies showed facilitators were unconsciously guiding responses. Scientific consensus is that it is not a valid technique."
+    },
+    {
+      keywords: ['vaccines', '2018', 'dtp', 'mortality', 'mogensen'],
+      explanation: "The Mogensen et al. study claiming DTP vaccine increases overall mortality in Africa had serious methodological flaws including selection bias and missing data. Multiple systematic reviews found no evidence for increased mortality."
+    },
+    {
+      keywords: ['wegman', 'climate', 'hockey stick', 'mcintyre'],
+      explanation: "The Wegman report criticizing climate change research contained plagiarized content and statistical errors. Subsequent independent analyses confirmed the original 'hockey stick' climate findings."
     }
   ];
   
@@ -657,7 +697,7 @@ const detectDebunkedStudies = (text: string): string | undefined => {
     }
   }
   
-  // Check for general red flags about studies
+  // Enhanced check for general red flags about studies
   if (
     (lowerText.includes('study') || lowerText.includes('research') || lowerText.includes('paper')) &&
     (lowerText.includes('proves') || lowerText.includes('proven') || lowerText.includes('conclusive'))
@@ -667,21 +707,59 @@ const detectDebunkedStudies = (text: string): string | undefined => {
   
   if (
     (lowerText.includes('one study') || lowerText.includes('single study') || lowerText.includes('a study shows')) &&
-    !lowerText.includes('studies show')
+    !lowerText.includes('studies show') &&
+    !lowerText.includes('systematic review') &&
+    !lowerText.includes('meta-analysis')
   ) {
     return "This claim relies on a single study. Scientific consensus typically requires multiple studies with consistent results across different research teams.";
+  }
+  
+  if (
+    (lowerText.includes('study') || lowerText.includes('research')) &&
+    (lowerText.includes('small sample') || lowerText.includes('preliminary') || 
+     lowerText.includes('pilot') || lowerText.includes('not peer reviewed'))
+  ) {
+    return "This claim cites preliminary research or a study with limitations. Such findings are typically considered tentative until verified by larger, more rigorous studies.";
+  }
+  
+  if (
+    lowerText.includes('published in') &&
+    (lowerText.includes('predatory') || lowerText.includes('pay-to-publish') ||
+     lowerText.includes('medical hypothesis') || lowerText.includes('non-peer-reviewed'))
+  ) {
+    return "This claim references research from a potentially questionable publication source. Studies should be evaluated based on methodological rigor and peer review process.";
   }
   
   return undefined;
 };
 
 // Helper function to generate confidence scores when not provided by the API
-const generateConfidenceScore = (verdict: 'true' | 'false' | 'unverified'): number => {
+// Enhanced to be less harsh on unverified claims and consider study validity
+const generateConfidenceScore = (
+  verdict: 'true' | 'false' | 'unverified', 
+  hasDebunkedStudy: boolean = false,
+  hasFallacies: boolean = false
+): number => {
+  let baseScore: number;
+  
   if (verdict === 'unverified') {
-    return Math.floor(Math.random() * 30) + 20; // 20-50%
+    // More nuanced scoring for unverified claims - higher baseline
+    baseScore = Math.floor(Math.random() * 20) + 40; // 40-60% instead of 20-50%
   } else if (verdict === 'true') {
-    return Math.floor(Math.random() * 20) + 75; // 75-95%
+    baseScore = Math.floor(Math.random() * 20) + 75; // 75-95%
   } else {
-    return Math.floor(Math.random() * 25) + 70; // 70-95%
+    baseScore = Math.floor(Math.random() * 25) + 70; // 70-95%
   }
+  
+  // Adjust score based on presence of debunked studies or fallacies
+  if (hasDebunkedStudy) {
+    baseScore = Math.max(baseScore - 15, 30); // Reduce score but don't go below 30%
+  }
+  
+  if (hasFallacies) {
+    baseScore = Math.max(baseScore - 10, 30); // Reduce score but don't go below 30%
+  }
+  
+  return baseScore;
 };
+

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Slider } from "@/components/ui/slider";
 import { useDebate } from '@/context/DebateContext';
-import { Shield, HelpCircle } from 'lucide-react';
+import { Shield, HelpCircle, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ToleranceSlider = () => {
@@ -46,6 +46,22 @@ const ToleranceSlider = () => {
       <div className="flex justify-between mt-1">
         <span className="text-xs text-gray-500">Strict</span>
         <span className="text-xs text-gray-500">Lenient</span>
+      </div>
+      
+      <div className="mt-2 pt-2 border-t border-gray-100">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 cursor-help">
+                <Info className="h-3 w-3" />
+                <span>Updated credibility scoring</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="text-xs">Unverified claims now receive more balanced credibility scores. Claims with debunked studies or logical fallacies receive appropriate penalties.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
