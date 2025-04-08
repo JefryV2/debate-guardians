@@ -3,8 +3,9 @@ import { useDebate, Speaker } from "@/context/DebateContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Calendar, TrendingUp, Lightbulb, FileText, BarChart, Brain, Book, AlertTriangle, Fingerprint } from "lucide-react";
+import { Calendar, TrendingUp, Lightbulb, FileText, BarChart, Brain, Book, AlertTriangle, Fingerprint, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
@@ -225,14 +226,14 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
         )}
         
         {/* Topic Expertise */}
-        {topicExpertise.length > 0 && (
-          <div className="mb-3">
-            <div className="flex items-center gap-1 mb-1.5">
-              <Lightbulb className="h-3 w-3 text-slate-600" />
-              <span className="text-xs font-medium text-slate-700">Topic Expertise</span>
-            </div>
-            <div className="space-y-1.5">
-              {topicExpertise.slice(0, 3).map(([topic, score]) => (
+        <div className="mb-3">
+          <div className="flex items-center gap-1 mb-1.5">
+            <Lightbulb className="h-3 w-3 text-slate-600" />
+            <span className="text-xs font-medium text-slate-700">Topic Expertise</span>
+          </div>
+          <div className="space-y-1.5">
+            {topicExpertise.length > 0 ? (
+              topicExpertise.slice(0, 3).map(([topic, score]) => (
                 <div key={topic} className="flex items-center justify-between">
                   <Badge variant="outline" className="text-[10px] font-normal py-0">
                     {topic}
@@ -249,13 +250,17 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                     <span className="text-[10px] font-medium">{score}%</span>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <div className="text-[10px] text-slate-500 italic text-center py-1">
+                No topic expertise data available yet
+              </div>
+            )}
           </div>
-        )}
+        </div>
         
         {/* Historical Accuracy */}
-        {chartData.length > 1 && (
+        {chartData.length > 1 ? (
           <div>
             <div className="flex items-center gap-1 mb-1.5">
               <Calendar className="h-3 w-3 text-slate-600" />
@@ -286,6 +291,10 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
               </ResponsiveContainer>
             </div>
           </div>
+        ) : (
+          <div className="text-[10px] text-slate-500 italic text-center py-1">
+            Not enough historical data to show accuracy trend
+          </div>
         )}
       </CardContent>
     </Card>
@@ -293,7 +302,3 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
 };
 
 export default SpeakerStats;
-
-// Import missing components
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
