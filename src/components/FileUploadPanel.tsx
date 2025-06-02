@@ -89,22 +89,14 @@ const FileUploadPanel = () => {
       const mockSpeakers = generateMockSpeakers();
       setDetectedSpeakers(mockSpeakers);
 
-      // Add speakers to debate context
-      mockSpeakers.forEach(speaker => {
-        if (!speakers.find(s => s.id === speaker.id)) {
-          addSpeaker(speaker.id, speaker.name);
-        }
-      });
-
-      // Add transcript entries
+      // Add transcript entries for each speaker segment
       mockSpeakers.forEach(speaker => {
         speaker.segments.forEach(segment => {
           addTranscriptEntry({
             text: segment.text,
             speakerId: speaker.id,
             timestamp: new Date(Date.now() + segment.start * 1000),
-            isClaim: Math.random() > 0.7, // Random claim detection for demo
-            confidence: segment.confidence
+            isClaim: Math.random() > 0.7 // Random claim detection for demo
           });
         });
       });
