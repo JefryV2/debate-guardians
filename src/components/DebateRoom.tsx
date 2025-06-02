@@ -136,7 +136,7 @@ const DebateRoom = () => {
   }, [contextFactChecks]);
   
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+    <div className="min-h-screen bg-gray-50">
       <Header 
         aiEnabled={aiEnabled}
         setApiKeyDialogOpen={setApiKeyDialogOpen}
@@ -146,65 +146,81 @@ const DebateRoom = () => {
         toggleMicrophone={toggleMicrophone}
       />
       
-      <TabNavigation 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-      
-      <main className="flex-1 container mx-auto px-4 py-6">
-        {activeTab === "transcript" && (
-          <>
-            <div className="flex justify-end mb-4">
-              <ToleranceSlider />
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <TranscriptDisplay />
-              </div>
-              
-              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
-                <h2 className="text-xl font-bold mb-4 border-b-2 border-purple-300 pb-3 flex items-center gap-2">
-                  <span className="text-2xl">🔍</span>
-                  Fact Check Results
-                  <span className="text-2xl">✨</span>
-                </h2>
-                <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar pr-2">
-                  {factChecks.length > 0 ? (
-                    factChecks.map(factCheck => (
-                      <FactCheckResult key={factCheck.id} factCheck={factCheck} />
-                    ))
-                  ) : (
-                    <div className="text-center p-8 text-gray-400 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-dashed border-purple-200">
-                      <span className="text-4xl mb-3 block">🤔</span>
-                      <p className="mb-2 font-medium">No fact checks yet</p>
-                      <p className="text-xs">Start speaking to generate claims!</p>
+      <div className="flex h-screen">
+        {/* Sidebar Navigation */}
+        <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800">Navigation</h2>
+          </div>
+          <TabNavigation 
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 p-6 overflow-auto">
+            {activeTab === "transcript" && (
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                  {/* Transcript Section */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 h-full">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-gray-800">Live Transcript</h2>
+                        <ToleranceSlider />
+                      </div>
+                      <TranscriptDisplay />
                     </div>
-                  )}
+                  </div>
+                  
+                  {/* Fact Check Results */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Fact Checks
+                    </h2>
+                    <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+                      {factChecks.length > 0 ? (
+                        factChecks.map(factCheck => (
+                          <FactCheckResult key={factCheck.id} factCheck={factCheck} />
+                        ))
+                      ) : (
+                        <div className="text-center p-8 text-gray-400">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span className="text-2xl">🔍</span>
+                          </div>
+                          <p className="font-medium mb-1">No fact checks yet</p>
+                          <p className="text-sm">Start speaking to generate claims</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            )}
 
-        {activeTab === "upload" && (
-          <div className="max-w-4xl mx-auto">
-            <FileUploadPanel />
-          </div>
-        )}
-        
-        {activeTab === "speakers" && (
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
-            <SpeakerPanel />
-          </div>
-        )}
-        
-        {activeTab === "analytics" && (
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
-            <AnalyticsPanel />
-          </div>
-        )}
-      </main>
+            {activeTab === "upload" && (
+              <div className="max-w-4xl mx-auto">
+                <FileUploadPanel />
+              </div>
+            )}
+            
+            {activeTab === "speakers" && (
+              <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6">
+                <SpeakerPanel />
+              </div>
+            )}
+            
+            {activeTab === "analytics" && (
+              <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6">
+                <AnalyticsPanel />
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
       
       <HelpPanel />
       

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileAudio, FileVideo, X, Play, Pause, Users, Sparkles } from 'lucide-react';
+import { Upload, FileAudio, FileVideo, X, Play, Pause, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -35,7 +35,6 @@ const FileUploadPanel = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ['audio/mp3', 'audio/mpeg', 'video/mp4', 'audio/wav', 'audio/m4a'];
     if (!validTypes.includes(file.type)) {
       toast.error("Invalid file type", {
@@ -44,7 +43,6 @@ const FileUploadPanel = () => {
       return;
     }
 
-    // Check file size (limit to 50MB)
     if (file.size > 50 * 1024 * 1024) {
       toast.error("File too large", {
         description: "Please upload a file smaller than 50MB"
@@ -68,35 +66,25 @@ const FileUploadPanel = () => {
     setProcessingProgress(0);
 
     try {
-      // Simulate processing steps
       toast.info("Processing audio", {
         description: "Extracting audio and detecting speakers..."
       });
 
-      // Step 1: Audio extraction (simulate)
       await simulateProgress(20, "Extracting audio...");
-      
-      // Step 2: Speaker diarization (simulate)
       await simulateProgress(50, "Detecting speakers...");
-      
-      // Step 3: Speech recognition (simulate)
       await simulateProgress(80, "Transcribing speech...");
-      
-      // Step 4: Final processing
       await simulateProgress(100, "Finalizing...");
 
-      // Simulate detected speakers and transcript
       const mockSpeakers = generateMockSpeakers();
       setDetectedSpeakers(mockSpeakers);
 
-      // Add transcript entries for each speaker segment
       mockSpeakers.forEach(speaker => {
         speaker.segments.forEach(segment => {
           addTranscriptEntry({
             text: segment.text,
             speakerId: speaker.id,
             timestamp: new Date(Date.now() + segment.start * 1000),
-            isClaim: Math.random() > 0.7 // Random claim detection for demo
+            isClaim: Math.random() > 0.7
           });
         });
       });
@@ -204,47 +192,41 @@ const FileUploadPanel = () => {
   };
 
   return (
-    <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 shadow-xl rounded-2xl">
+    <Card className="p-8 bg-white border border-gray-200 rounded-xl">
       <div className="space-y-8">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="h-8 w-8 text-purple-600 animate-pulse" />
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Upload Audio/Video File
-            </h3>
-            <Sparkles className="h-8 w-8 text-purple-600 animate-pulse" />
-          </div>
-          <p className="text-base text-gray-600 mb-6 font-medium">
-            Upload an MP3 or MP4 file for automatic speaker detection and fact-checking! 🎉
+          <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+            Upload Audio or Video File
+          </h3>
+          <p className="text-gray-600 mb-8">
+            Upload a file for automatic speaker detection and transcription
           </p>
           
           {!uploadedFile ? (
             <div 
-              className="border-3 border-dashed border-purple-300 rounded-2xl p-12 hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 cursor-pointer transform hover:scale-105"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-12 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-16 w-16 text-purple-400 mx-auto mb-6" />
-              <p className="text-lg text-gray-600 mb-3 font-semibold">Click to upload or drag and drop</p>
-              <p className="text-sm text-gray-500 bg-white rounded-full px-4 py-2 inline-block">
-                MP3, MP4, WAV, M4A files up to 50MB ✨
+              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg text-gray-600 mb-2 font-medium">Choose a file or drag it here</p>
+              <p className="text-sm text-gray-500">
+                MP3, MP4, WAV, M4A up to 50MB
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-6 border-2 border-purple-200 shadow-md">
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                  {uploadedFile.type.startsWith('audio/') ? (
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <FileAudio className="h-10 w-10 text-purple-600" />
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-pink-100 rounded-full">
-                      <FileVideo className="h-10 w-10 text-pink-600" />
-                    </div>
-                  )}
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    {uploadedFile.type.startsWith('audio/') ? (
+                      <FileAudio className="h-8 w-8 text-blue-600" />
+                    ) : (
+                      <FileVideo className="h-8 w-8 text-blue-600" />
+                    )}
+                  </div>
                   <div className="text-left">
-                    <p className="font-bold text-lg">{uploadedFile.name}</p>
-                    <p className="text-sm text-gray-500 bg-gray-100 rounded-full px-3 py-1 inline-block">
+                    <p className="font-semibold text-gray-800">{uploadedFile.name}</p>
+                    <p className="text-sm text-gray-500">
                       {(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB
                     </p>
                   </div>
@@ -253,7 +235,7 @@ const FileUploadPanel = () => {
                   variant="ghost"
                   size="sm"
                   onClick={clearFile}
-                  className="text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                  className="text-gray-500 hover:text-red-600"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -284,22 +266,21 @@ const FileUploadPanel = () => {
                       size="sm"
                       onClick={togglePlayback}
                       disabled={isProcessing}
-                      className="rounded-full border-2 border-purple-300 hover:bg-purple-50"
+                      className="rounded-full"
                     >
                       {isPlaying ? (
-                        <Pause className="h-5 w-5" />
+                        <Pause className="h-4 w-4" />
                       ) : (
-                        <Play className="h-5 w-5" />
+                        <Play className="h-4 w-4" />
                       )}
                     </Button>
                     <div className="flex-1">
-                      <div className="text-sm text-gray-500 mb-2 font-medium">
+                      <div className="text-sm text-gray-600 mb-2">
                         {formatTime(currentTime)} / {formatTime(duration)}
                       </div>
                       <Progress 
                         value={duration > 0 ? (currentTime / duration) * 100 : 0} 
-                        className="h-3 rounded-full"
-                        indicatorClassName="bg-gradient-to-r from-purple-500 to-pink-500"
+                        className="h-2"
                       />
                     </div>
                   </div>
@@ -308,23 +289,19 @@ const FileUploadPanel = () => {
 
               {isProcessing ? (
                 <div className="space-y-4">
-                  <Progress 
-                    value={processingProgress} 
-                    className="h-4 rounded-full" 
-                    indicatorClassName="bg-gradient-to-r from-green-400 to-blue-500"
-                  />
-                  <p className="text-lg text-gray-600 font-semibold">
-                    Processing magic happening... {processingProgress}% ✨
+                  <Progress value={processingProgress} className="h-3" />
+                  <p className="text-gray-600 font-medium">
+                    Processing... {processingProgress}%
                   </p>
                 </div>
               ) : (
                 <Button 
                   onClick={processFile}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 rounded-full transform hover:scale-105 transition-all duration-200 shadow-lg"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg"
                   disabled={!uploadedFile}
                 >
                   <Users className="h-5 w-5 mr-2" />
-                  Detect Speakers & Process 🚀
+                  Detect Speakers & Process
                 </Button>
               )}
             </div>
@@ -340,25 +317,22 @@ const FileUploadPanel = () => {
         </div>
 
         {detectedSpeakers.length > 0 && (
-          <div className="border-t-2 border-purple-200 pt-8">
-            <h4 className="font-bold text-xl mb-4 flex items-center gap-3">
-              <Users className="h-6 w-6 text-purple-600" />
-              Detected Speakers ({detectedSpeakers.length}) 🎙️
+          <div className="border-t border-gray-200 pt-8">
+            <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Detected Speakers ({detectedSpeakers.length})
             </h4>
             <div className="space-y-4">
               {detectedSpeakers.map(speaker => (
-                <div key={speaker.id} className="bg-white rounded-xl p-4 border-2 border-purple-100 shadow-sm">
-                  <div className="font-bold text-lg mb-3 text-purple-600">{speaker.name}</div>
+                <div key={speaker.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="font-semibold text-gray-800 mb-3">{speaker.name}</div>
                   <div className="space-y-2">
                     {speaker.segments.map((segment, index) => (
-                      <div key={index} className="text-sm bg-purple-50 rounded-lg p-3">
-                        <span className="text-purple-600 font-semibold">
+                      <div key={index} className="text-sm bg-gray-50 rounded p-3">
+                        <span className="text-blue-600 font-medium">
                           {formatTime(segment.start)} - {formatTime(segment.end)}:
                         </span>
-                        <span className="ml-2">{segment.text}</span>
-                        <span className="ml-3 text-purple-400 font-medium">
-                          ({Math.round(segment.confidence * 100)}% confidence)
-                        </span>
+                        <span className="ml-2 text-gray-700">{segment.text}</span>
                       </div>
                     ))}
                   </div>
