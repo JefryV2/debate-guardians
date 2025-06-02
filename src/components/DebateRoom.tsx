@@ -15,6 +15,7 @@ import ToleranceSlider from "./ToleranceSlider";
 import FactCheckResult from "./FactCheckResult";
 import HelpPanel from "./HelpPanel";
 import ApiKeyDialog from "./ApiKeyDialog";
+import FileUploadPanel from "./FileUploadPanel";
 
 const DebateRoom = () => {
   const { 
@@ -179,6 +180,12 @@ const DebateRoom = () => {
               </div>
             </div>
           </>
+        )}
+
+        {activeTab === "upload" && (
+          <div className="max-w-4xl mx-auto">
+            <FileUploadPanel />
+          </div>
         )}
         
         {activeTab === "speakers" && (
