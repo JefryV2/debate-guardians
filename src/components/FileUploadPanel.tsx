@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileAudio, FileVideo, X, Play, Pause, Users } from 'lucide-react';
+import { Upload, FileAudio, FileVideo, X, Play, Pause, Users, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -204,35 +204,47 @@ const FileUploadPanel = () => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
+    <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 shadow-xl rounded-2xl">
+      <div className="space-y-8">
         <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">Upload Audio/Video File</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Upload an MP3 or MP4 file for automatic speaker detection and fact-checking
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Sparkles className="h-8 w-8 text-purple-600 animate-pulse" />
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Upload Audio/Video File
+            </h3>
+            <Sparkles className="h-8 w-8 text-purple-600 animate-pulse" />
+          </div>
+          <p className="text-base text-gray-600 mb-6 font-medium">
+            Upload an MP3 or MP4 file for automatic speaker detection and fact-checking! 🎉
           </p>
           
           {!uploadedFile ? (
             <div 
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-purple-400 transition-colors cursor-pointer"
+              className="border-3 border-dashed border-purple-300 rounded-2xl p-12 hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 cursor-pointer transform hover:scale-105"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-500">MP3, MP4, WAV, M4A files up to 50MB</p>
+              <Upload className="h-16 w-16 text-purple-400 mx-auto mb-6" />
+              <p className="text-lg text-gray-600 mb-3 font-semibold">Click to upload or drag and drop</p>
+              <p className="text-sm text-gray-500 bg-white rounded-full px-4 py-2 inline-block">
+                MP3, MP4, WAV, M4A files up to 50MB ✨
+              </p>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+            <div className="bg-white rounded-2xl p-6 border-2 border-purple-200 shadow-md">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
                   {uploadedFile.type.startsWith('audio/') ? (
-                    <FileAudio className="h-8 w-8 text-purple-600" />
+                    <div className="p-3 bg-purple-100 rounded-full">
+                      <FileAudio className="h-10 w-10 text-purple-600" />
+                    </div>
                   ) : (
-                    <FileVideo className="h-8 w-8 text-purple-600" />
+                    <div className="p-3 bg-pink-100 rounded-full">
+                      <FileVideo className="h-10 w-10 text-pink-600" />
+                    </div>
                   )}
                   <div className="text-left">
-                    <p className="font-medium text-sm">{uploadedFile.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-bold text-lg">{uploadedFile.name}</p>
+                    <p className="text-sm text-gray-500 bg-gray-100 rounded-full px-3 py-1 inline-block">
                       {(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB
                     </p>
                   </div>
@@ -241,14 +253,14 @@ const FileUploadPanel = () => {
                   variant="ghost"
                   size="sm"
                   onClick={clearFile}
-                  className="text-gray-500 hover:text-red-600"
+                  className="text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </Button>
               </div>
 
               {audioUrl && (
-                <div className="mb-4">
+                <div className="mb-6">
                   <audio
                     ref={audioRef}
                     src={audioUrl}
@@ -266,26 +278,28 @@ const FileUploadPanel = () => {
                     className="hidden"
                   />
                   
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-4 mb-3">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={togglePlayback}
                       disabled={isProcessing}
+                      className="rounded-full border-2 border-purple-300 hover:bg-purple-50"
                     >
                       {isPlaying ? (
-                        <Pause className="h-4 w-4" />
+                        <Pause className="h-5 w-5" />
                       ) : (
-                        <Play className="h-4 w-4" />
+                        <Play className="h-5 w-5" />
                       )}
                     </Button>
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1">
+                      <div className="text-sm text-gray-500 mb-2 font-medium">
                         {formatTime(currentTime)} / {formatTime(duration)}
                       </div>
                       <Progress 
                         value={duration > 0 ? (currentTime / duration) * 100 : 0} 
-                        className="h-2"
+                        className="h-3 rounded-full"
+                        indicatorClassName="bg-gradient-to-r from-purple-500 to-pink-500"
                       />
                     </div>
                   </div>
@@ -293,20 +307,24 @@ const FileUploadPanel = () => {
               )}
 
               {isProcessing ? (
-                <div className="space-y-3">
-                  <Progress value={processingProgress} className="h-2" />
-                  <p className="text-sm text-gray-600">
-                    Processing... {processingProgress}%
+                <div className="space-y-4">
+                  <Progress 
+                    value={processingProgress} 
+                    className="h-4 rounded-full" 
+                    indicatorClassName="bg-gradient-to-r from-green-400 to-blue-500"
+                  />
+                  <p className="text-lg text-gray-600 font-semibold">
+                    Processing magic happening... {processingProgress}% ✨
                   </p>
                 </div>
               ) : (
                 <Button 
                   onClick={processFile}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 rounded-full transform hover:scale-105 transition-all duration-200 shadow-lg"
                   disabled={!uploadedFile}
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  Detect Speakers & Process
+                  <Users className="h-5 w-5 mr-2" />
+                  Detect Speakers & Process 🚀
                 </Button>
               )}
             </div>
@@ -322,24 +340,24 @@ const FileUploadPanel = () => {
         </div>
 
         {detectedSpeakers.length > 0 && (
-          <div className="border-t pt-6">
-            <h4 className="font-medium mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Detected Speakers ({detectedSpeakers.length})
+          <div className="border-t-2 border-purple-200 pt-8">
+            <h4 className="font-bold text-xl mb-4 flex items-center gap-3">
+              <Users className="h-6 w-6 text-purple-600" />
+              Detected Speakers ({detectedSpeakers.length}) 🎙️
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {detectedSpeakers.map(speaker => (
-                <div key={speaker.id} className="bg-gray-50 rounded-lg p-3">
-                  <div className="font-medium text-sm mb-2">{speaker.name}</div>
-                  <div className="space-y-1">
+                <div key={speaker.id} className="bg-white rounded-xl p-4 border-2 border-purple-100 shadow-sm">
+                  <div className="font-bold text-lg mb-3 text-purple-600">{speaker.name}</div>
+                  <div className="space-y-2">
                     {speaker.segments.map((segment, index) => (
-                      <div key={index} className="text-xs">
-                        <span className="text-gray-500">
+                      <div key={index} className="text-sm bg-purple-50 rounded-lg p-3">
+                        <span className="text-purple-600 font-semibold">
                           {formatTime(segment.start)} - {formatTime(segment.end)}:
                         </span>
-                        <span className="ml-1">{segment.text}</span>
-                        <span className="ml-2 text-gray-400">
-                          ({Math.round(segment.confidence * 100)}%)
+                        <span className="ml-2">{segment.text}</span>
+                        <span className="ml-3 text-purple-400 font-medium">
+                          ({Math.round(segment.confidence * 100)}% confidence)
                         </span>
                       </div>
                     ))}

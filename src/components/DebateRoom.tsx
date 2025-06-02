@@ -136,7 +136,7 @@ const DebateRoom = () => {
   }, [contextFactChecks]);
   
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
       <Header 
         aiEnabled={aiEnabled}
         setApiKeyDialogOpen={setApiKeyDialogOpen}
@@ -163,17 +163,22 @@ const DebateRoom = () => {
                 <TranscriptDisplay />
               </div>
               
-              <div className="bg-white p-4 rounded-lg border shadow-sm">
-                <h2 className="text-lg font-medium mb-4 border-b pb-2">Fact Check Results</h2>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
+                <h2 className="text-xl font-bold mb-4 border-b-2 border-purple-300 pb-3 flex items-center gap-2">
+                  <span className="text-2xl">🔍</span>
+                  Fact Check Results
+                  <span className="text-2xl">✨</span>
+                </h2>
                 <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar pr-2">
                   {factChecks.length > 0 ? (
                     factChecks.map(factCheck => (
                       <FactCheckResult key={factCheck.id} factCheck={factCheck} />
                     ))
                   ) : (
-                    <div className="text-center p-8 text-gray-400 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200">
-                      <p className="mb-2">No fact checks yet</p>
-                      <p className="text-xs">Start speaking to generate claims</p>
+                    <div className="text-center p-8 text-gray-400 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-dashed border-purple-200">
+                      <span className="text-4xl mb-3 block">🤔</span>
+                      <p className="mb-2 font-medium">No fact checks yet</p>
+                      <p className="text-xs">Start speaking to generate claims!</p>
                     </div>
                   )}
                 </div>
@@ -189,13 +194,13 @@ const DebateRoom = () => {
         )}
         
         {activeTab === "speakers" && (
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
             <SpeakerPanel />
           </div>
         )}
         
         {activeTab === "analytics" && (
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-200 shadow-xl">
             <AnalyticsPanel />
           </div>
         )}
