@@ -1,28 +1,41 @@
-import React, { useState, useRef } from 'react';
-import { Upload, FileAudio, FileVideo, X, Play, Pause, Users } from 'lucide-react';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, FileAudio, FileVideo, X, Play, Pause, Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useDebate } from '@/context/DebateContext';
 import { toast } from "@/lib/toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface DetectedSpeaker {
+interface ProcessedFile {
   id: string;
-  name: string;
+  filename: string;
+  processing_status: string;
+  transcript_segments_count: number;
+  speakers: Array<{
+    id: string;
+    speaker_name: string;
+    confidence_score: number;
+  }>;
   segments: Array<{
-    start: number;
-    end: number;
+    id: string;
+    speaker_id: string;
+    start_time: number;
+    end_time: number;
     text: string;
-    confidence: number;
+    is_claim: boolean;
+    confidence_score: number;
   }>;
 }
 
 const FileUploadPanel = () => {
-  const { addTranscriptEntry, addSpeaker, speakers } = useDebate();
+  const { addTranscriptEntry, addSpeaker } = useDebate();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
-  const [detectedSpeakers, setDetectedSpeakers] = useState<DetectedSpeaker[]>([]);
+  const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
   const [audioUrl, setAudioUrl] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -31,21 +44,79 @@ const FileUploadPanel = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Load processed files on component mount
+  useEffect(() => {
+    loadProcessedFiles();
+  }, []);
+
+  // Subscribe to realtime updates for processing status
+  useEffect(() => {
+    const channel = supabase
+      .channel('debate-files-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'debate_files'
+        },
+        () => {
+          loadProcessedFiles();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadProcessedFiles = async () => {
+    try {
+      const { data: files, error } = await supabase
+        .from('debate_files')
+        .select(`
+          *,
+          detected_speakers (
+            id,
+            speaker_name,
+            confidence_score
+          ),
+          transcript_segments (
+            id,
+            speaker_id,
+            start_time,
+            end_time,
+            text,
+            is_claim,
+            confidence_score
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setProcessedFiles(files || []);
+    } catch (error) {
+      console.error('Error loading processed files:', error);
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ['audio/mp3', 'audio/mpeg', 'video/mp4', 'audio/wav', 'audio/m4a'];
+    const validTypes = ['audio/mp3', 'audio/mpeg', 'video/mp4', 'audio/wav', 'audio/m4a', 'audio/webm'];
     if (!validTypes.includes(file.type)) {
       toast.error("Invalid file type", {
-        description: "Please upload an MP3, MP4, WAV, or M4A file"
+        description: "Please upload an MP3, MP4, WAV, M4A, or WebM file"
       });
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > 100 * 1024 * 1024) {
       toast.error("File too large", {
-        description: "Please upload a file smaller than 50MB"
+        description: "Please upload a file smaller than 100MB"
       });
       return;
     }
@@ -54,110 +125,134 @@ const FileUploadPanel = () => {
     const url = URL.createObjectURL(file);
     setAudioUrl(url);
     
-    toast.success("File uploaded", {
-      description: "Ready to process for speaker detection"
+    toast.success("File selected", {
+      description: "Ready to upload and process for AI analysis"
     });
   };
 
-  const processFile = async () => {
+  const uploadAndProcessFile = async () => {
     if (!uploadedFile) return;
 
+    setIsUploading(true);
     setIsProcessing(true);
     setProcessingProgress(0);
 
     try {
-      toast.info("Processing audio", {
-        description: "Extracting audio and detecting speakers..."
+      toast.info("Uploading file", {
+        description: "Uploading to secure storage..."
       });
 
-      await simulateProgress(20, "Extracting audio...");
-      await simulateProgress(50, "Detecting speakers...");
-      await simulateProgress(80, "Transcribing speech...");
-      await simulateProgress(100, "Finalizing...");
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileExtension = uploadedFile.name.split('.').pop();
+      const storagePath = `${timestamp}-${uploadedFile.name}`;
 
-      const mockSpeakers = generateMockSpeakers();
-      setDetectedSpeakers(mockSpeakers);
+      // Upload file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('debate-files')
+        .upload(storagePath, uploadedFile);
 
-      mockSpeakers.forEach(speaker => {
-        speaker.segments.forEach(segment => {
-          addTranscriptEntry({
-            text: segment.text,
-            speakerId: speaker.id,
-            timestamp: new Date(Date.now() + segment.start * 1000),
-            isClaim: Math.random() > 0.7
-          });
+      if (uploadError) throw uploadError;
+
+      setProcessingProgress(20);
+
+      // Create database record
+      const { data: fileRecord, error: dbError } = await supabase
+        .from('debate_files')
+        .insert({
+          filename: uploadedFile.name,
+          mime_type: uploadedFile.type,
+          file_size: uploadedFile.size,
+          storage_path: storagePath,
+          processing_status: 'uploaded'
+        })
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      setProcessingProgress(40);
+
+      toast.info("Processing with AI", {
+        description: "Analyzing audio with speech recognition and speaker detection..."
+      });
+
+      // Call the processing edge function
+      const { data: processResult, error: processError } = await supabase.functions
+        .invoke('process-debate-file', {
+          body: { fileId: fileRecord.id }
         });
+
+      if (processError) throw processError;
+
+      setProcessingProgress(100);
+
+      toast.success("Processing complete!", {
+        description: `Detected ${processResult.speakers} speakers and ${processResult.segments} segments`
       });
 
-      toast.success("Processing complete", {
-        description: `Detected ${mockSpeakers.length} speakers and processed transcript`
-      });
+      // Load the processed data into the debate context
+      await loadProcessedDataIntoDebate(fileRecord.id);
+
+      // Clear the current file
+      clearFile();
 
     } catch (error) {
       console.error("Processing error:", error);
       toast.error("Processing failed", {
-        description: "An error occurred while processing the file"
+        description: error.message || "An error occurred while processing the file"
       });
     } finally {
+      setIsUploading(false);
       setIsProcessing(false);
       setProcessingProgress(0);
     }
   };
 
-  const simulateProgress = (targetProgress: number, message: string) => {
-    return new Promise<void>((resolve) => {
-      const interval = setInterval(() => {
-        setProcessingProgress(prev => {
-          const newProgress = Math.min(prev + 2, targetProgress);
-          if (newProgress >= targetProgress) {
-            clearInterval(interval);
-            resolve();
-          }
-          return newProgress;
-        });
-      }, 100);
-    });
-  };
+  const loadProcessedDataIntoDebate = async (fileId: string) => {
+    try {
+      const { data: fileData, error } = await supabase
+        .from('debate_files')
+        .select(`
+          *,
+          detected_speakers (
+            id,
+            speaker_name,
+            confidence_score
+          ),
+          transcript_segments (
+            id,
+            speaker_id,
+            start_time,
+            end_time,
+            text,
+            is_claim,
+            confidence_score
+          )
+        `)
+        .eq('id', fileId)
+        .single();
 
-  const generateMockSpeakers = (): DetectedSpeaker[] => {
-    return [
-      {
-        id: 'speaker-1',
-        name: 'Speaker 1',
-        segments: [
-          {
-            start: 0,
-            end: 5,
-            text: "According to recent studies, climate change affects global temperatures significantly.",
-            confidence: 0.92
-          },
-          {
-            start: 15,
-            end: 22,
-            text: "The research shows that renewable energy reduces carbon emissions by 60%.",
-            confidence: 0.88
-          }
-        ]
-      },
-      {
-        id: 'speaker-2',
-        name: 'Speaker 2',
-        segments: [
-          {
-            start: 6,
-            end: 14,
-            text: "I disagree with that assessment. The data doesn't support such broad claims.",
-            confidence: 0.85
-          },
-          {
-            start: 23,
-            end: 30,
-            text: "We need to consider the economic implications of these environmental policies.",
-            confidence: 0.90
-          }
-        ]
-      }
-    ];
+      if (error) throw error;
+
+      // Add speakers to debate context
+      fileData.detected_speakers.forEach(speaker => {
+        addSpeaker(speaker.speaker_name);
+      });
+
+      // Add transcript entries to debate context
+      fileData.transcript_segments.forEach(segment => {
+        addTranscriptEntry({
+          text: segment.text,
+          speakerId: segment.speaker_id,
+          timestamp: new Date(Date.now() + segment.start_time * 1000),
+          isClaim: segment.is_claim
+        });
+      });
+
+    } catch (error) {
+      console.error('Error loading processed data:', error);
+    }
   };
 
   const togglePlayback = () => {
@@ -174,7 +269,6 @@ const FileUploadPanel = () => {
   const clearFile = () => {
     setUploadedFile(null);
     setAudioUrl('');
-    setDetectedSpeakers([]);
     setCurrentTime(0);
     setDuration(0);
     if (audioRef.current) {
@@ -191,15 +285,28 @@ const FileUploadPanel = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'processing':
+        return <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />;
+      case 'failed':
+        return <AlertCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Upload className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
   return (
     <Card className="p-8 bg-white border border-gray-200 rounded-xl">
       <div className="space-y-8">
         <div className="text-center">
           <h3 className="text-2xl font-semibold text-gray-800 mb-3">
-            Upload Audio or Video File
+            AI Debate Analysis
           </h3>
           <p className="text-gray-600 mb-8">
-            Upload a file for automatic speaker detection and transcription
+            Upload audio/video files for automatic AI speaker detection, transcription, and fact-checking
           </p>
           
           {!uploadedFile ? (
@@ -210,7 +317,7 @@ const FileUploadPanel = () => {
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-lg text-gray-600 mb-2 font-medium">Choose a file or drag it here</p>
               <p className="text-sm text-gray-500">
-                MP3, MP4, WAV, M4A up to 50MB
+                MP3, MP4, WAV, M4A, WebM up to 100MB
               </p>
             </div>
           ) : (
@@ -236,6 +343,7 @@ const FileUploadPanel = () => {
                   size="sm"
                   onClick={clearFile}
                   className="text-gray-500 hover:text-red-600"
+                  disabled={isProcessing}
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -291,17 +399,17 @@ const FileUploadPanel = () => {
                 <div className="space-y-4">
                   <Progress value={processingProgress} className="h-3" />
                   <p className="text-gray-600 font-medium">
-                    Processing... {processingProgress}%
+                    {isUploading ? 'Uploading...' : 'Processing with AI...'} {processingProgress}%
                   </p>
                 </div>
               ) : (
                 <Button 
-                  onClick={processFile}
+                  onClick={uploadAndProcessFile}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg"
                   disabled={!uploadedFile}
                 >
                   <Users className="h-5 w-5 mr-2" />
-                  Detect Speakers & Process
+                  Upload & Process with AI
                 </Button>
               )}
             </div>
@@ -310,32 +418,69 @@ const FileUploadPanel = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".mp3,.mp4,.wav,.m4a,audio/*,video/mp4"
+            accept=".mp3,.mp4,.wav,.m4a,.webm,audio/*,video/mp4"
             onChange={handleFileSelect}
             className="hidden"
           />
         </div>
 
-        {detectedSpeakers.length > 0 && (
+        {processedFiles.length > 0 && (
           <div className="border-t border-gray-200 pt-8">
             <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-600" />
-              Detected Speakers ({detectedSpeakers.length})
+              Processed Files ({processedFiles.length})
             </h4>
             <div className="space-y-4">
-              {detectedSpeakers.map(speaker => (
-                <div key={speaker.id} className="bg-white rounded-lg p-4 border border-gray-200">
-                  <div className="font-semibold text-gray-800 mb-3">{speaker.name}</div>
-                  <div className="space-y-2">
-                    {speaker.segments.map((segment, index) => (
-                      <div key={index} className="text-sm bg-gray-50 rounded p-3">
-                        <span className="text-blue-600 font-medium">
-                          {formatTime(segment.start)} - {formatTime(segment.end)}:
-                        </span>
-                        <span className="ml-2 text-gray-700">{segment.text}</span>
+              {processedFiles.map(file => (
+                <div key={file.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(file.processing_status)}
+                      <div>
+                        <div className="font-semibold text-gray-800">{file.filename}</div>
+                        <div className="text-sm text-gray-500 capitalize">
+                          Status: {file.processing_status} 
+                          {file.processing_status === 'completed' && (
+                            <span className="ml-2">
+                              • {file.transcript_segments_count} segments 
+                              • {file.speakers?.length || 0} speakers
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                    {file.processing_status === 'completed' && (
+                      <Button
+                        onClick={() => loadProcessedDataIntoDebate(file.id)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Load into Debate
+                      </Button>
+                    )}
                   </div>
+                  {file.processing_status === 'completed' && file.segments && (
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {file.segments.slice(0, 3).map(segment => (
+                        <div key={segment.id} className="text-sm bg-gray-50 rounded p-3">
+                          <span className="text-blue-600 font-medium">
+                            {formatTime(segment.start_time)} - {formatTime(segment.end_time)}:
+                          </span>
+                          <span className="ml-2 text-gray-700">{segment.text}</span>
+                          {segment.is_claim && (
+                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                              Claim
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {file.segments.length > 3 && (
+                        <div className="text-sm text-gray-500 text-center">
+                          +{file.segments.length - 3} more segments
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

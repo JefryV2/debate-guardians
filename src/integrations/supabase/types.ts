@@ -9,7 +9,149 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      debate_files: {
+        Row: {
+          created_at: string
+          duration: number | null
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          processing_status: string | null
+          storage_path: string | null
+          transcript_segments_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          file_size: number
+          filename: string
+          id?: string
+          mime_type: string
+          processing_status?: string | null
+          storage_path?: string | null
+          transcript_segments_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          file_size?: number
+          filename?: string
+          id?: string
+          mime_type?: string
+          processing_status?: string | null
+          storage_path?: string | null
+          transcript_segments_count?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      detected_speakers: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          debate_file_id: string | null
+          id: string
+          speaker_name: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          debate_file_id?: string | null
+          id?: string
+          speaker_name: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          debate_file_id?: string | null
+          id?: string
+          speaker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detected_speakers_debate_file_id_fkey"
+            columns: ["debate_file_id"]
+            isOneToOne: false
+            referencedRelation: "debate_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_detected_speakers_debate_file"
+            columns: ["debate_file_id"]
+            isOneToOne: false
+            referencedRelation: "debate_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcript_segments: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          debate_file_id: string | null
+          end_time: number
+          id: string
+          is_claim: boolean | null
+          speaker_id: string | null
+          start_time: number
+          text: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          debate_file_id?: string | null
+          end_time: number
+          id?: string
+          is_claim?: boolean | null
+          speaker_id?: string | null
+          start_time: number
+          text: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          debate_file_id?: string | null
+          end_time?: number
+          id?: string
+          is_claim?: boolean | null
+          speaker_id?: string | null
+          start_time?: number
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_transcript_segments_debate_file"
+            columns: ["debate_file_id"]
+            isOneToOne: false
+            referencedRelation: "debate_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transcript_segments_speaker"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "detected_speakers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_segments_debate_file_id_fkey"
+            columns: ["debate_file_id"]
+            isOneToOne: false
+            referencedRelation: "debate_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_segments_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "detected_speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
