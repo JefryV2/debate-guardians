@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileAudio, FileVideo, X, Play, Pause, Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -248,7 +247,7 @@ const FileUploadPanel = () => {
               // Simple speaker detection based on pauses and content changes
               const speakerId = `speaker_${speakerCounter}`;
               
-              // Basic claim detection using the existing service
+              // Basic claim detection using the text content
               const isClaim = detectClaim(transcript);
               
               transcriptSegments.push({
@@ -302,7 +301,7 @@ const FileUploadPanel = () => {
     });
   };
 
-  // Simple claim detection function
+  // Simple claim detection function that takes text as parameter
   const detectClaim = (text: string): boolean => {
     const claimIndicators = [
       'studies show', 'research indicates', 'scientists say', 'proven that',
