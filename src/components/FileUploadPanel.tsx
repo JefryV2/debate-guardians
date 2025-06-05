@@ -13,12 +13,18 @@ interface ProcessedFile {
   filename: string;
   processing_status: string;
   transcript_segments_count: number;
-  speakers: Array<{
+  created_at: string;
+  updated_at: string;
+  file_size: number;
+  mime_type: string;
+  storage_path: string;
+  duration?: number;
+  detected_speakers: Array<{
     id: string;
     speaker_name: string;
     confidence_score: number;
   }>;
-  segments: Array<{
+  transcript_segments: Array<{
     id: string;
     speaker_id: string;
     start_time: number;
@@ -443,7 +449,7 @@ const FileUploadPanel = () => {
                           {file.processing_status === 'completed' && (
                             <span className="ml-2">
                               • {file.transcript_segments_count} segments 
-                              • {file.speakers?.length || 0} speakers
+                              • {file.detected_speakers?.length || 0} speakers
                             </span>
                           )}
                         </div>
@@ -459,9 +465,9 @@ const FileUploadPanel = () => {
                       </Button>
                     )}
                   </div>
-                  {file.processing_status === 'completed' && file.segments && (
+                  {file.processing_status === 'completed' && file.transcript_segments && (
                     <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {file.segments.slice(0, 3).map(segment => (
+                      {file.transcript_segments.slice(0, 3).map(segment => (
                         <div key={segment.id} className="text-sm bg-gray-50 rounded p-3">
                           <span className="text-blue-600 font-medium">
                             {formatTime(segment.start_time)} - {formatTime(segment.end_time)}:
@@ -474,9 +480,9 @@ const FileUploadPanel = () => {
                           )}
                         </div>
                       ))}
-                      {file.segments.length > 3 && (
+                      {file.transcript_segments.length > 3 && (
                         <div className="text-sm text-gray-500 text-center">
-                          +{file.segments.length - 3} more segments
+                          +{file.transcript_segments.length - 3} more segments
                         </div>
                       )}
                     </div>
