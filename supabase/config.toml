@@ -1,5 +1,1 @@
-
 project_id = "irgssotfjgfunpbasfbu"
-
-[functions.process-debate-file]
-verify_jwt = false
