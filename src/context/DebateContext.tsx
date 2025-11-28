@@ -86,6 +86,7 @@ interface DebateContextType {
   setDebugMode: (mode: boolean) => void;
   addSpeaker: () => void;
   removeSpeaker: (id: string) => void;
+  updateSpeakerName: (id: string, name: string) => void;
   markEntryAsClaim: (entryId: string) => void;
   continuousAnalysisMode: boolean;
   setContinuousAnalysisMode: (mode: boolean) => void;
@@ -221,6 +222,12 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
     toast.success("Speaker removed", {
       description: "Speaker has been removed from the debate."
     });
+  };
+
+  const updateSpeakerName = (id: string, name: string) => {
+    setSpeakers(prev => prev.map(speaker => 
+      speaker.id === id ? { ...speaker, name } : speaker
+    ));
   };
 
   const addTranscriptEntry = (entry: Omit<TranscriptEntry, 'id'>) => {
@@ -557,6 +564,7 @@ export const DebateProvider: React.FC<DebateProviderProps> = ({ children }) => {
         setDebugMode,
         addSpeaker,
         removeSpeaker,
+        updateSpeakerName,
         markEntryAsClaim,
         continuousAnalysisMode,
         setContinuousAnalysisMode,

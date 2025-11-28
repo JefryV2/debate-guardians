@@ -1,154 +1,181 @@
-
-import { Speaker } from "@/context/DebateContext";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { Mic, MicOff, Award, BadgeCheck, AlertTriangle } from "lucide-react";
-import { EmotionType } from "@/services/speechService";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import React, { useState } from 'react';
+import { Speaker } from '@/context/DebateContext';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { X, Edit3 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface SpeakerCardProps {
   speaker: Speaker;
   isActive: boolean;
   onClick: () => void;
-  emotion?: EmotionType;
+  onRemove?: () => void;
+  showRemoveButton?: boolean;
+  onNameChange?: (id: string, newName: string) => void;
 }
 
-const SpeakerCard = ({ speaker, isActive, onClick, emotion }: SpeakerCardProps) => {
-  const { name, avatar, accuracyScore, color, argumentPatterns } = speaker;
-  
-  const getEmotionLabel = () => {
-    if (!emotion) return null;
-    
-    const emotionColors: Record<EmotionType, string> = {
-      angry: "from-red-500 to-red-600",
-      happy: "from-green-500 to-green-600",
-      sad: "from-blue-500 to-blue-600",
-      excited: "from-yellow-500 to-yellow-600",
-      frustrated: "from-orange-500 to-orange-600",
-      uncertain: "from-purple-500 to-purple-600",
-      neutral: "from-gray-500 to-gray-600"
+const SpeakerCard = ({ 
+  speaker, 
+  isActive, 
+  onClick,
+  onRemove,
+  showRemoveButton = false,
+  onNameChange
+}: SpeakerCardProps) => {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(speaker.name);
+
+  const getColorClasses = () => {
+    const colorMap: Record<string, string> = {
+      'debate-blue': 'bg-blue-500',
+      'debate-red': 'bg-red-500',
+      'debate-green': 'bg-green-500',
+      'debate-orange': 'bg-orange-500',
+      'debate-purple': 'bg-purple-500',
+      'debate-yellow': 'bg-yellow-500',
+      'debate-cyan': 'bg-cyan-500',
+      'debate-pink': 'bg-pink-500'
     };
-    
-    return (
-      <div className={cn(
-        "absolute top-0 right-0 text-xs font-medium py-1 px-2 rounded-full transform translate-x-1/3 -translate-y-1/3 shadow-md text-white",
-        `bg-gradient-to-r ${emotionColors[emotion]}`
-      )}>
-        {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
-      </div>
-    );
-  };
-  
-  // Get progress color based on accuracy score
-  const getProgressColor = () => {
-    if (accuracyScore > 80) return "bg-gradient-to-r from-green-500 to-emerald-600";
-    if (accuracyScore > 50) return "bg-gradient-to-r from-yellow-500 to-amber-600";
-    return "bg-gradient-to-r from-red-500 to-rose-600";
+    return colorMap[speaker.color] || 'bg-gray-500';
   };
 
-  // Get argumentation style badge
-  const getArgumentStyleBadge = () => {
-    if (!argumentPatterns?.overallBias) return null;
-    
-    const getBadgeColor = () => {
-      const styles: Record<string, string> = {
-        factual: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        scientific: 'bg-blue-100 text-blue-800 border-blue-200',
-        emotional: 'bg-amber-100 text-amber-800 border-amber-200',
-        political: 'bg-purple-100 text-purple-800 border-purple-200',
-        sensationalist: 'bg-rose-100 text-rose-800 border-rose-200'
-      };
-      
-      return styles[argumentPatterns.overallBias] || 'bg-slate-100 text-slate-800 border-slate-200';
-    };
-
-    const getArgumentIcon = () => {
-      switch(argumentPatterns.overallBias) {
-        case 'factual': return <BadgeCheck className="h-3 w-3" />;
-        case 'scientific': return <Award className="h-3 w-3" />;
-        case 'sensationalist': return <AlertTriangle className="h-3 w-3" />;
-        default: return null;
-      }
-    };
-    
-    return (
-      <Badge variant="outline" className={`text-xs mt-1 ${getBadgeColor()} flex items-center gap-1`}>
-        {getArgumentIcon()}
-        {argumentPatterns.overallBias.charAt(0).toUpperCase() + argumentPatterns.overallBias.slice(1)} style
-      </Badge>
-    );
+  const handleNameEdit = () => {
+    setIsEditingName(true);
+    setTempName(speaker.name);
   };
-  
+
+  const handleNameSave = () => {
+    if (onNameChange && tempName.trim() !== '') {
+      onNameChange(speaker.id, tempName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameCancel = () => {
+    setTempName(speaker.name);
+    setIsEditingName(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      handleNameCancel();
+    }
+  };
+
   return (
-    <Card 
+    <div 
       className={cn(
-        "relative w-full cursor-pointer transition-all hover:scale-[1.02] duration-200 overflow-hidden glass-card rounded-xl",
-        isActive && "ring-2 ring-violet-500 shadow-lg shadow-violet-500/20"
+        "group relative flex items-center p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md",
+        isActive 
+          ? "border-2 border-blue-500 bg-blue-50 shadow-md" 
+          : "border-border bg-card hover:border-primary/30",
+        "hover:scale-[1.02]"
       )}
       onClick={onClick}
     >
-      <CardContent className="p-5 flex flex-col items-center relative">
-        <div className="relative mb-3 mt-1">
-          <div className={cn(
-            "w-20 h-20 rounded-full overflow-hidden border-2 shadow-md",
-            isActive ? "border-violet-500" : "border-gray-200"
-          )}>
-            <img 
-              src={avatar} 
-              alt={name} 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {getEmotionLabel()}
-          <div className={cn(
-            "absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-md",
-            isActive 
-              ? "purple-gradient" 
-              : "bg-gradient-to-r from-gray-300 to-gray-400"
-          )}>
-            {isActive ? (
-              <Mic className="w-4 h-4 text-white" />
-            ) : (
-              <MicOff className="w-4 h-4 text-white" />
-            )}
-          </div>
+      <div className="flex items-center gap-4 flex-1">
+        <div className="relative">
+          <img 
+            src={speaker.avatar} 
+            alt={speaker.name} 
+            className="w-12 h-12 rounded-full border-2 border-white shadow-sm"
+          />
+          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-background ${getColorClasses()}`} />
         </div>
         
-        <h3 className="font-medium text-lg">{name}</h3>
-        {getArgumentStyleBadge()}
-        
-        <div className="w-full mt-3">
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-slate-600">Accuracy</span>
-            <span className={cn(
-              "font-medium",
-              accuracyScore > 80 ? "text-green-600" : 
-              accuracyScore > 50 ? "text-yellow-600" : 
-              "text-red-600"
-            )}>
-              {accuracyScore}%
-            </span>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <Progress 
-                    value={accuracyScore} 
-                    className={cn("h-2.5", getProgressColor())}
-                  />
+        <div className="flex-1 min-w-0">
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="text-base h-8 rounded-md"
+                autoFocus
+              />
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNameSave();
+                }}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-green-500 hover:text-green-700 hover:bg-green-50 rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </Button>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNameCancel();
+                }}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground truncate">{speaker.name}</h3>
+                {onNameChange && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNameEdit();
+                    }}
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Accuracy:</span>
+                  <span className="text-sm font-medium text-foreground">{speaker.accuracyScore}%</span>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Factual accuracy score based on previous claims</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Claims:</span>
+                  <span className="text-sm font-medium text-foreground">{speaker.totalClaims}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {showRemoveButton && onRemove && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+
+      {isActive && (
+        <div className="absolute top-2 right-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+        </div>
+      )}
+    </div>
   );
 };
 

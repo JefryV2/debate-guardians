@@ -1,4 +1,3 @@
-
 import { useDebate, Speaker } from "@/context/DebateContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -64,18 +63,18 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
   };
   
   return (
-    <Card className="shadow-sm">
+    <Card className="border border-gray-200 shadow-sm rounded-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-1">
+        <CardTitle className="text-sm font-medium flex items-center gap-1 text-gray-800">
           <TrendingUp className="h-4 w-4" />
-          Speaker Stats
+          Speaker Statistics
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3">
         {/* Overall Accuracy */}
         <div className="mb-3">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs font-medium text-slate-700">Overall Accuracy</span>
+            <span className="text-xs font-medium text-gray-700">Overall Accuracy</span>
             <span className={cn(
               "text-xs font-semibold",
               speaker.accuracyScore >= 80 ? "text-green-600" :
@@ -96,7 +95,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
               speaker.accuracyScore >= 60 ? "bg-amber-500" : "bg-red-500"
             )}
           />
-          <div className="text-[10px] text-slate-500 mt-1">
+          <div className="text-[10px] text-gray-500 mt-1">
             Based on {speaker.totalClaims} verified claims
           </div>
         </div>
@@ -110,8 +109,8 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 mb-0.5">
-                <Fingerprint className="h-3 w-3 text-slate-600" />
-                <span className="text-xs font-medium text-slate-700">Argument Style</span>
+                <Fingerprint className="h-3 w-3 text-gray-600" />
+                <span className="text-xs font-medium text-gray-700">Argument Style</span>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -123,7 +122,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
             {/* Always visible pattern summary */}
             {patterns.overallBias && (
               <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] text-slate-600">Argumentation style:</span>
+                <span className="text-[10px] text-gray-600">Argumentation style:</span>
                 <Badge 
                   variant="outline" 
                   className={cn(
@@ -139,7 +138,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
             
             <CollapsibleContent className="space-y-3 pt-2">
               {!hasEnoughData ? (
-                <div className="text-[10px] text-slate-500 italic text-center py-1">
+                <div className="text-[10px] text-gray-500 italic text-center py-1">
                   Need more claims to analyze argument patterns
                 </div>
               ) : (
@@ -147,7 +146,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                   {/* Citation behavior */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-600">Cites studies/research:</span>
+                      <span className="text-[10px] text-gray-600">Cites studies/research:</span>
                       <Badge variant={patterns.citesStudies > 0 ? "default" : "outline"} className="text-[10px] py-0">
                         {((patterns.citesStudies / Math.max(speaker.totalClaims, 1)) * 100).toFixed(0)}%
                       </Badge>
@@ -155,7 +154,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                     
                     {patterns.usesDebunkedSources > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-slate-600">References debunked sources:</span>
+                        <span className="text-[10px] text-gray-600">References debunked sources:</span>
                         <Badge variant="destructive" className="text-[10px] py-0">
                           {patterns.usesDebunkedSources} time{patterns.usesDebunkedSources !== 1 ? 's' : ''}
                         </Badge>
@@ -166,7 +165,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                   {/* Fallacy patterns */}
                   {topFallacies && topFallacies.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] text-slate-600">Common fallacies:</span>
+                      <span className="text-[10px] text-gray-600">Common fallacies:</span>
                       <div className="flex flex-wrap gap-1">
                         {topFallacies.map(([fallacy, count]) => (
                           <Badge key={fallacy} variant="outline" className="text-[10px] py-0">
@@ -180,7 +179,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                   {/* Preferred topics */}
                   {patterns.preferredTopics && patterns.preferredTopics.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] text-slate-600">Favorite topics:</span>
+                      <span className="text-[10px] text-gray-600">Favorite topics:</span>
                       <div className="flex flex-wrap gap-1">
                         {patterns.preferredTopics.slice(0, 3).map(topic => (
                           <Badge key={topic} variant="secondary" className="text-[10px] py-0">
@@ -194,7 +193,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                   {/* Emotional appeals */}
                   {patterns.emotionalAppealFrequency > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-600">Emotional appeals:</span>
+                      <span className="text-[10px] text-gray-600">Emotional appeals:</span>
                       <Badge 
                         variant={patterns.emotionalAppealFrequency / Math.max(speaker.totalClaims, 1) > 0.3 ? "destructive" : "outline"} 
                         className="text-[10px] py-0"
@@ -207,7 +206,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                   {/* Improvement trend */}
                   {patterns.improvementTrend !== undefined && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-600">Accuracy trend:</span>
+                      <span className="text-[10px] text-gray-600">Accuracy trend:</span>
                       <Badge 
                         variant={patterns.improvementTrend ? "default" : "outline"} 
                         className={cn(
@@ -228,8 +227,8 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
         {/* Topic Expertise */}
         <div className="mb-3">
           <div className="flex items-center gap-1 mb-1.5">
-            <Lightbulb className="h-3 w-3 text-slate-600" />
-            <span className="text-xs font-medium text-slate-700">Topic Expertise</span>
+            <Lightbulb className="h-3 w-3 text-gray-600" />
+            <span className="text-xs font-medium text-gray-700">Topic Expertise</span>
           </div>
           <div className="space-y-1.5">
             {topicExpertise.length > 0 ? (
@@ -252,7 +251,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
                 </div>
               ))
             ) : (
-              <div className="text-[10px] text-slate-500 italic text-center py-1">
+              <div className="text-[10px] text-gray-500 italic text-center py-1">
                 No topic expertise data available yet
               </div>
             )}
@@ -263,8 +262,8 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
         {chartData.length > 1 ? (
           <div>
             <div className="flex items-center gap-1 mb-1.5">
-              <Calendar className="h-3 w-3 text-slate-600" />
-              <span className="text-xs font-medium text-slate-700">Accuracy Trend</span>
+              <Calendar className="h-3 w-3 text-gray-600" />
+              <span className="text-xs font-medium text-gray-700">Accuracy Trend</span>
             </div>
             <div className="h-28">
               <ResponsiveContainer width="100%" height="100%">
@@ -292,7 +291,7 @@ const SpeakerStats = ({ speaker }: SpeakerStatsProps) => {
             </div>
           </div>
         ) : (
-          <div className="text-[10px] text-slate-500 italic text-center py-1">
+          <div className="text-[10px] text-gray-500 italic text-center py-1">
             Not enough historical data to show accuracy trend
           </div>
         )}

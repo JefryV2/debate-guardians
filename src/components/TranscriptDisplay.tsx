@@ -1,8 +1,7 @@
-
 import { useDebate, TranscriptEntry } from "@/context/DebateContext";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Flag, CheckCircle, AlertCircle } from "lucide-react";
+import { Flag, CheckCircle, AlertCircle, Volume2, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,63 +16,94 @@ interface TranscriptEntryProps {
 const TranscriptEntryComponent = ({ 
   entry, 
   speakerColor, 
-  speakerName, 
-  onMarkAsClaim 
-}: TranscriptEntryProps) => {
-  const { text, isClaim, timestamp, emotion } = entry;
+  speakerName,
+  onMarkAsClaim
+}: { 
+  entry: TranscriptEntry; 
+  speakerColor: string; 
+  speakerName: string;
+  onMarkAsClaim: () => void;
+}) => {
+  const { text, isClaim, emotion, speakingRate, timestamp } = entry;
+  
+  const getColorClasses = () => {
+    const colorMap: Record<string, string> = {
+      'debate-blue': 'bg-blue-600',
+      'debate-red': 'bg-red-600',
+      'debate-green': 'bg-green-600',
+      'debate-orange': 'bg-orange-600',
+      'debate-purple': 'bg-purple-600',
+      'debate-yellow': 'bg-yellow-600',
+      'debate-cyan': 'bg-cyan-600',
+      'debate-pink': 'bg-pink-600'
+    };
+    return colorMap[speakerColor] || 'bg-gray-600';
+  };
   
   return (
-    <div className="mb-4 relative group p-3 hover:bg-gray-50 rounded-lg transition-colors">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="relative group py-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors duration-200 rounded-lg px-2 -mx-2">
+      <div className="flex items-start gap-3">
         <div 
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white" 
-          style={{ backgroundColor: speakerColor || '#9333ea' }}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0 mt-0.5 shadow-sm",
+            getColorClasses()
+          )}
         >
           {speakerName.charAt(0)}
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{speakerName}</span>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              <Volume2 className="h-4 w-4 text-primary" />
+              {speakerName}
+            </span>
             {emotion && (
-              <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded-full">{emotion}</span>
+              <span className="text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 px-2.5 py-0.5 rounded-full font-medium border border-purple-500/30">
+                {emotion}
+              </span>
+            )}
+            {speakingRate && (
+              <span className="text-xs bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-300 px-2.5 py-0.5 rounded-full font-medium border border-blue-500/30">
+                {Math.round(speakingRate)} WPM
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          
+          <div className="text-foreground/90 leading-relaxed">
+            {isClaim ? (
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-4 rounded-lg border-l-4 border-green-500 shadow-sm my-1">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{text}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm pl-1 pr-8">{text}</div>
             )}
           </div>
-          <span className="text-xs text-gray-500">
-            {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
         </div>
-        {isClaim && (
-          <div className="ml-auto flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
-            <CheckCircle className="h-3 w-3 text-green-600" />
-            <span className="text-xs text-green-700">Fact-checked</span>
-          </div>
+        
+        {!isClaim && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity bg-card shadow-xs text-xs h-7 px-2.5 border-border hover:bg-muted rounded-md"
+            onClick={() => {
+              onMarkAsClaim();
+              toast.success("Entry marked as claim", {
+                description: "This statement will now be fact-checked"
+              });
+            }}
+          >
+            <Flag className="h-3 w-3 mr-1" />
+            Mark
+          </Button>
         )}
       </div>
-      
-      <div className="pl-10 text-gray-800">
-        {isClaim ? (
-          <div className="bg-green-50 p-2 rounded border-l-2 border-green-400">
-            {text}
-          </div>
-        ) : text}
-      </div>
-      
-      {!isClaim && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => {
-            onMarkAsClaim();
-            toast.success("Entry marked as claim", {
-              description: "This statement will now be fact-checked"
-            });
-          }}
-        >
-          <Flag className="h-3 w-3 mr-1" />
-          Mark as Claim
-        </Button>
-      )}
     </div>
   );
 };
@@ -93,7 +123,7 @@ const TranscriptDisplay = () => {
   const getSpeakerInfo = (speakerId: string) => {
     const speaker = speakers.find(s => s.id === speakerId);
     return {
-      color: speaker?.color || "#9333ea",
+      color: speaker?.color || "debate-blue",
       name: speaker?.name || "Unknown Speaker"
     };
   };
@@ -103,21 +133,31 @@ const TranscriptDisplay = () => {
   };
   
   return (
-    <div className="bg-white p-4 rounded-lg border shadow-sm h-full">
-      <div className="flex justify-between items-center mb-4 border-b pb-2">
-        <h2 className="text-lg font-medium">Live Transcript</h2>
-        <div className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          Listening
+    <div className="bg-card rounded-xl h-full flex flex-col border border-border shadow-lg overflow-hidden">
+      <div className="flex justify-between items-center p-4 bg-muted/50 border-b border-border">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Mic className="h-5 w-5 text-primary" />
+          Live Transcript
+        </h2>
+        <div className="px-3 py-1.5 bg-primary/20 text-primary text-xs font-medium rounded-full flex items-center gap-1.5">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+          Live
         </div>
       </div>
       
-      <ScrollArea className="h-[calc(100vh-250px)] pr-2 custom-scrollbar">
-        <div className="pr-4">
+      <ScrollArea className="flex-1 p-4 custom-scrollbar" ref={scrollRef}>
+        <div className="space-y-4">
           {transcript.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center text-gray-400 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200 p-6">
-              <p className="mb-2">No transcript yet</p>
-              <p className="text-xs">Click "Start Listening" to begin capturing audio</p>
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center text-muted-foreground bg-muted/30 rounded-lg border border-dashed border-border p-8">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4 border border-border">
+                <Mic className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No transcript yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-xs">Click "Start Listening" to begin capturing audio</p>
+              <div className="flex items-center gap-2 text-sm bg-primary/20 text-primary px-4 py-2 rounded-full">
+                <Mic className="h-4 w-4" />
+                <span>Ready to capture speech</span>
+              </div>
             </div>
           ) : (
             transcript.map(entry => {
@@ -135,6 +175,10 @@ const TranscriptDisplay = () => {
           )}
         </div>
       </ScrollArea>
+      <div className="px-4 py-3 bg-muted/50 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
+        <span>{transcript.length} entries</span>
+        <span>Real-time transcription</span>
+      </div>
     </div>
   );
 };

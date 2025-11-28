@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -53,34 +52,33 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				},
 				debate: {
-					blue: '#3b82f6',
-					red: '#ef4444',
+					lightGreen: '#D7F2BA',
+					green: '#BDE4A8',
+					sage: '#9CC69B',
+					teal: '#79B4A9',
+					forest: '#676F54',
 					neutral: '#6b7280',
 					true: '#10b981',
 					false: '#ef4444',
 					unverified: '#f59e0b',
-                    violet: '#8b5cf6',
-                    indigo: '#6366f1',
-                    primary: '#3b82f6',
-                    primaryHover: '#2563eb',
-                    secondary: '#f59e0b',
-                    secondaryHover: '#d97706',
-                    dark: '#f8fafc',
-                    darker: '#f1f5f9',
+                    light: '#D7F2BA',
+                    medium: '#BDE4A8',
+                    dark: '#676F54',
+                    accent: '#79B4A9',
+                    primary: '#9CC69B',
+                    primaryHover: '#79B4A9',
+                    secondary: '#79B4A9',
+                    secondaryHover: '#676F54',
                     darkHighlight: '#e2e8f0',
                     lightText: '#111827',
-                    midText: '#4b5563'
+                    midText: '#4b5563',
+                    // New dark theme colors
+                    darkPrimary: '#3b82f6',
+                    darkSecondary: '#8b5cf6',
+                    darkBackground: '#0f172a',
+                    darkCard: '#1e293b',
+                    darkBorder: '#334155'
 				}
 			},
 			borderRadius: {

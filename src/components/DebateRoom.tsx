@@ -1,21 +1,25 @@
 import { useDebate } from "@/context/DebateContext";
 import { useState, useEffect } from "react";
 import { startSpeechRecognition } from "@/services/speechService";
-import { checkFactAgainstDatabase } from "@/services/factCheckService";
+import { hybridFactCheck, FactCheckMode } from "@/services/hybridFactCheckService";
 import { toast } from "@/lib/toast";
 import { EmotionType } from "@/services/speechService";
 
 // Import components
 import Header from "./Header";
 import TabNavigation from "./TabNavigation";
-import TranscriptDisplay from "./TranscriptDisplay";
+import TranscriptWithUpload from "./TranscriptWithUpload";
 import SpeakerPanel from "./SpeakerPanel";
 import AnalyticsPanel from "./AnalyticsPanel";
-import ToleranceSlider from "./ToleranceSlider";
 import FactCheckResult from "./FactCheckResult";
-import HelpPanel from "./HelpPanel";
 import ApiKeyDialog from "./ApiKeyDialog";
 import FileUploadPanel from "./FileUploadPanel";
+import SpeakerCard from "./SpeakerCard";
+import SpeakerStats from "./SpeakerStats";
+import AboutPage from "./AboutPage";
+import SettingsPanel from "./SettingsPanel";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
 
 const DebateRoom = () => {
   const { 
@@ -29,7 +33,12 @@ const DebateRoom = () => {
     debugMode,
     continuousAnalysisMode,
     setContinuousAnalysisMode,
-    factChecks: contextFactChecks
+    factChecks: contextFactChecks,
+    speakers,
+    setCurrentSpeakerId,
+    addSpeaker,
+    removeSpeaker,
+    updateSpeakerName
   } = useDebate();
   
   const [activeTab, setActiveTab] = useState("transcript");
@@ -106,15 +115,24 @@ const DebateRoom = () => {
     });
     
     if (debugMode) {
+      const savedMode = localStorage.getItem("fact-check-mode") as FactCheckMode || "hybrid";
+      const modeDescriptions = {
+        "claimbuster": "Using ClaimBuster for claim detection",
+        "hybrid": "Using Hybrid AI fact-checking (ClaimBuster + Search + Gemini)",
+        "gemini": "Using Gemini AI for fact-checking"
+      };
+      
       toast.info(`AI analyzing claim: ${lastClaim.text.substring(0, 50)}...`, {
-        description: aiEnabled ? "Using Gemini AI for fact-checking" : "Using fallback fact-checking system",
+        description: modeDescriptions[savedMode],
         duration: 2000,
       });
     }
     
     const checkFact = async () => {
       try {
-        const factCheckResult = await checkFactAgainstDatabase(lastClaim);
+        // Determine which fact-checking mode to use based on user preference
+        const savedMode = localStorage.getItem("fact-check-mode") as FactCheckMode || "hybrid";
+        const factCheckResult = await hybridFactCheck(lastClaim, savedMode);
         addFactCheck(factCheckResult);
         setFactChecks(prevChecks => [...prevChecks, factCheckResult]);
       } catch (error) {
@@ -136,7 +154,7 @@ const DebateRoom = () => {
   }, [contextFactChecks]);
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen w-screen flex flex-col bg-background">
       <Header 
         aiEnabled={aiEnabled}
         setApiKeyDialogOpen={setApiKeyDialogOpen}
@@ -146,83 +164,127 @@ const DebateRoom = () => {
         toggleMicrophone={toggleMicrophone}
       />
       
-      <div className="flex h-screen">
-        {/* Sidebar Navigation */}
-        <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-800">Navigation</h2>
-          </div>
-          <TabNavigation 
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        <TabNavigation 
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+          <main className="flex-1 overflow-auto p-6">
             {activeTab === "transcript" && (
-              <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                  {/* Transcript Section */}
-                  <div className="lg:col-span-2">
-                    <div className="bg-white rounded-xl border border-gray-200 p-6 h-full">
-                      <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Live Transcript</h2>
-                        <ToleranceSlider />
+              <div className="h-full max-w-8xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+                  {/* Speakers Section */}
+                  <div className="lg:col-span-1">
+                    <div className="bg-card rounded-xl border border-border h-full flex flex-col shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="p-4 border-b border-border bg-card rounded-t-xl">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h2 className="text-lg font-bold text-foreground">Speakers</h2>
+                            <p className="text-xs text-muted-foreground">Active speaker highlighted</p>
+                          </div>
+                          <Button 
+                            onClick={addSpeaker}
+                            variant="outline" 
+                            size="sm"
+                            className="h-8 px-3 text-xs rounded-md border border-border shadow-sm hover:shadow transition-all duration-200"
+                            disabled={speakers.length >= 8}
+                          >
+                            <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                            Add
+                          </Button>
+                        </div>
                       </div>
-                      <TranscriptDisplay />
+                      <div className="flex-1 p-3 overflow-y-auto space-y-3 custom-scrollbar">
+                        {speakers.map(speaker => (
+                          <SpeakerCard 
+                            key={speaker.id}
+                            speaker={speaker}
+                            isActive={activeListener && currentSpeakerId === speaker.id}
+                            onClick={() => setCurrentSpeakerId(speaker.id)}
+                            onRemove={() => removeSpeaker(speaker.id)}
+                            showRemoveButton={speakers.length > 2 && !activeListener}
+                            onNameChange={updateSpeakerName}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Transcript Section with Upload */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-card rounded-xl border border-border h-full shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col">
+                      <TranscriptWithUpload />
                     </div>
                   </div>
                   
                   {/* Fact Check Results */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      Fact Checks
-                    </h2>
-                    <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-                      {factChecks.length > 0 ? (
-                        factChecks.map(factCheck => (
-                          <FactCheckResult key={factCheck.id} factCheck={factCheck} />
-                        ))
-                      ) : (
-                        <div className="text-center p-8 text-gray-400">
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <span className="text-2xl">🔍</span>
+                  <div className="lg:col-span-1">
+                    <div className="bg-card rounded-xl border border-border p-4 h-full flex flex-col shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                          <span className="w-3 h-3 bg-primary rounded-full"></span>
+                          Fact Checks
+                        </h2>
+                        <span className="text-xs bg-muted text-foreground px-2.5 py-1 rounded-full font-semibold shadow-sm">
+                          {factChecks.length} items
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                        {factChecks.length > 0 ? (
+                          <div className="space-y-3">
+                            {factChecks.map(factCheck => (
+                              <FactCheckResult key={factCheck.id} factCheck={factCheck} />
+                            ))}
                           </div>
-                          <p className="font-medium mb-1">No fact checks yet</p>
-                          <p className="text-sm">Start speaking to generate claims</p>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-center p-6 rounded-lg bg-card border border-border">
+                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3 shadow-sm">
+                              <span className="text-xl">🔍</span>
+                            </div>
+                            <p className="font-bold text-base mb-1 text-foreground">No fact checks yet</p>
+                            <p className="text-xs text-muted-foreground">Start speaking to generate claims</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {activeTab === "upload" && (
-              <div className="max-w-4xl mx-auto">
-                <FileUploadPanel />
-              </div>
-            )}
-            
             {activeTab === "speakers" && (
-              <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6">
-                <SpeakerPanel />
+              <div className="h-full w-full">
+                <div className="bg-card rounded-xl border border-border p-6 h-full shadow-lg">
+                  <SpeakerPanel />
+                </div>
               </div>
             )}
             
             {activeTab === "analytics" && (
-              <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6">
-                <AnalyticsPanel />
+              <div className="h-full w-full">
+                <div className="bg-card rounded-xl border border-border p-6 h-full shadow-lg">
+                  <AnalyticsPanel />
+                </div>
+              </div>
+            )}
+            
+            {activeTab === "about" && (
+              <div className="h-full w-full">
+                <AboutPage />
+              </div>
+            )}
+            
+            {activeTab === "settings" && (
+              <div className="h-full w-full">
+                <SettingsPanel />
               </div>
             )}
           </main>
         </div>
       </div>
-      
-      <HelpPanel />
       
       <ApiKeyDialog 
         open={apiKeyDialogOpen}
