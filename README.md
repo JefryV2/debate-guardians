@@ -24,7 +24,9 @@ Debate Guardian is an advanced debate fact-checking system that analyzes speech 
 1. Clone the repository
 2. Install dependencies with `npm install`
 3. Run the development server with `npm run dev`
-4. Set up your Gemini AI API key for enhanced fact-checking
+4. Set up your API keys for enhanced fact-checking:
+   - Gemini AI API key for AI-powered fact verification
+   - ClaimBuster API key for advanced claim detection
 
 ## Using the Application
 
@@ -34,6 +36,7 @@ Debate Guardian is an advanced debate fact-checking system that analyzes speech 
 4. Use the tolerance slider to adjust fact-checking strictness
 5. Enable emotion detection for additional insights
 6. View speaker statistics and analytics in their respective tabs
+7. Configure API keys in the Settings panel to enable advanced fact-checking
 
 ## Technology Stack
 
@@ -45,7 +48,6 @@ Debate Guardian is an advanced debate fact-checking system that analyzes speech 
 
 ## Future Implementations
 
-- **Advanced NLP Integration**: Deeper natural language processing for better claim identification
 - **Multi-language Support**: Fact-checking in various languages
 - **Historical Data Analysis**: Compare current debates with past ones
 - **Export Functionality**: PDF and CSV export options for reports

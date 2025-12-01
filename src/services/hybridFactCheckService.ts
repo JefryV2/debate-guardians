@@ -190,27 +190,75 @@ const fullHybridFactCheck = async (claim: Claim): Promise<FactCheckResult> => {
 // ClaimBuster integration for claim detection
 const claimBusterFactCheck = async (claim: Claim): Promise<ClaimBusterResult> => {
   try {
-    // In a real implementation, this would call the ClaimBuster API
-    // For now, we'll simulate the behavior with our existing logic
+    // Get the ClaimBuster API key from localStorage
+    const claimBusterApiKey = localStorage.getItem("claimbuster-api-key");
     
-    const claimText = claim.text.toLowerCase();
+    // If no API key is provided, fall back to simulation
+    if (!claimBusterApiKey) {
+      console.warn("No ClaimBuster API key found, using simulation");
+      
+      const claimText = claim.text.toLowerCase();
+      
+      // Simple heuristic to determine if something is a factual claim
+      const isFactualClaim = 
+        claimText.includes('study') || 
+        claimText.includes('research') || 
+        claimText.includes('according to') ||
+        /\d+%/.test(claimText) ||
+        claimText.includes('proves') ||
+        claimText.includes('shows that');
+      
+      if (!isFactualClaim) {
+        return {
+          claimId: claim.id,
+          verdict: 'not_claim',
+          source: 'ClaimBuster Simulation',
+          explanation: 'This statement was identified as an opinion or non-factual statement.',
+          confidenceScore: 70
+        };
+      }
+      
+      // If it is a factual claim, proceed with verification
+      return {
+        claimId: claim.id,
+        verdict: 'unverified',
+        source: 'ClaimBuster Simulation',
+        explanation: 'This statement was identified as a factual claim requiring verification.',
+        confidenceScore: 90
+      };
+    }
     
-    // Simple heuristic to determine if something is a factual claim
-    const isFactualClaim = 
-      claimText.includes('study') || 
-      claimText.includes('research') || 
-      claimText.includes('according to') ||
-      /\d+%/.test(claimText) ||
-      claimText.includes('proves') ||
-      claimText.includes('shows that');
+    // Make the actual API call to ClaimBuster
+    const response = await fetch('https://idir-server2.uta.edu/claimbuster/api/v1.0/score/text/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claimBusterApiKey
+      },
+      body: JSON.stringify({
+        input_text: claim.text
+      })
+    });
     
-    if (!isFactualClaim) {
+    if (!response.ok) {
+      throw new Error(`ClaimBuster API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Process the API response
+    // The ClaimBuster API returns a score indicating how likely the text is a factual claim
+    // Scores closer to 1.0 are more likely to be factual claims
+    const claimScore = data.results?.[0]?.score || 0;
+    
+    // If the score is below a threshold, it's likely not a factual claim
+    if (claimScore < 0.3) {
       return {
         claimId: claim.id,
         verdict: 'not_claim',
-        source: 'ClaimBuster Simulation',
+        source: 'ClaimBuster API',
         explanation: 'This statement was identified as an opinion or non-factual statement.',
-        confidenceScore: 70
+        confidenceScore: Math.round(claimScore * 100)
       };
     }
     
@@ -218,9 +266,9 @@ const claimBusterFactCheck = async (claim: Claim): Promise<ClaimBusterResult> =>
     return {
       claimId: claim.id,
       verdict: 'unverified',
-      source: 'ClaimBuster Simulation',
+      source: 'ClaimBuster API',
       explanation: 'This statement was identified as a factual claim requiring verification.',
-      confidenceScore: 90
+      confidenceScore: Math.round(claimScore * 100)
     };
     
   } catch (error) {

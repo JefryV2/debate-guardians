@@ -166,6 +166,21 @@ const AboutPage = () => {
               <li>Encouraging respectful, evidence-based discourse</li>
             </ul>
           </div>
+          
+          <div className="border-t border-border pt-6">
+            <h3 className="font-semibold text-foreground mb-3">API Integrations</h3>
+            <p className="text-foreground/80 font-medium text-sm mb-4">
+              Debate Guardian leverages advanced AI technologies to provide accurate fact-checking:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-foreground/80 font-medium text-sm">
+              <li><strong>ClaimBuster:</strong> Advanced claim detection technology from the University of Texas at Arlington that identifies factual statements requiring verification</li>
+              <li><strong>Gemini AI:</strong> Google's powerful language model for deep analysis and fact verification</li>
+              <li><strong>Hybrid Mode:</strong> Combines multiple approaches for the most comprehensive fact-checking</li>
+            </ul>
+            <p className="text-foreground/80 font-medium text-sm mt-4">
+              To enable these features, add your API keys in the Settings panel.
+            </p>
+          </div>
         </div>
       </div>
     </div>

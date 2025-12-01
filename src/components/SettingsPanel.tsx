@@ -14,19 +14,23 @@ const SettingsPanel = () => {
   
   const [factCheckMode, setFactCheckMode] = useState<FactCheckMode>("hybrid");
   const [apiKey, setApiKey] = useState("");
+  const [claimBusterApiKey, setClaimBusterApiKey] = useState("");
   
   useEffect(() => {
     // Load settings from localStorage
     const savedMode = localStorage.getItem("fact-check-mode") as FactCheckMode || "hybrid";
     const savedApiKey = localStorage.getItem("gemini-api-key") || "";
+    const savedClaimBusterApiKey = localStorage.getItem("claimbuster-api-key") || "";
     
     setFactCheckMode(savedMode);
     setApiKey(savedApiKey);
+    setClaimBusterApiKey(savedClaimBusterApiKey);
   }, []);
   
   const saveSettings = () => {
     localStorage.setItem("fact-check-mode", factCheckMode);
     localStorage.setItem("gemini-api-key", apiKey);
+    localStorage.setItem("claimbuster-api-key", claimBusterApiKey);
     
     toast.success("Settings saved", {
       description: "Your preferences have been updated successfully."
@@ -100,26 +104,53 @@ const SettingsPanel = () => {
           <div className="space-y-6 pt-6">
             <Label className="text-xl font-bold text-foreground flex items-center gap-2.5">
               <Key className="h-6 w-6 text-primary" />
-              Gemini API Key
+              API Keys
             </Label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your Gemini API key"
-              className="w-full px-5 py-4 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-base shadow-sm hover:shadow-md bg-background"
-            />
-            <p className="text-muted-foreground bg-card p-4 rounded-lg border border-border">
-              Required for Gemini AI fact-checking. Get your key from{' '}
-              <a 
-                href="https://aistudio.google.com/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline font-semibold"
-              >
-                Google AI Studio
-              </a>
-            </p>
+            <div className="space-y-6">
+              <div>
+                <Label className="text-base font-medium text-foreground mb-2 block">Gemini API Key</Label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your Gemini API key"
+                  className="w-full px-5 py-4 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-base shadow-sm hover:shadow-md bg-background"
+                />
+                <p className="text-muted-foreground bg-card p-4 rounded-lg border border-border mt-2">
+                  Required for Gemini AI fact-checking. Get your key from{' '}
+                  <a 
+                    href="https://aistudio.google.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    Google AI Studio
+                  </a>
+                </p>
+              </div>
+              
+              <div>
+                <Label className="text-base font-medium text-foreground mb-2 block">ClaimBuster API Key</Label>
+                <input
+                  type="password"
+                  value={claimBusterApiKey}
+                  onChange={(e) => setClaimBusterApiKey(e.target.value)}
+                  placeholder="Enter your ClaimBuster API key"
+                  className="w-full px-5 py-4 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-base shadow-sm hover:shadow-md bg-background"
+                />
+                <p className="text-muted-foreground bg-card p-4 rounded-lg border border-border mt-2">
+                  Required for ClaimBuster fact-checking. Get your key from{' '}
+                  <a 
+                    href="https://idir.uta.edu/claimbuster/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    ClaimBuster Website
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
